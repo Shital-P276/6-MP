@@ -1,0 +1,145 @@
+{
+  "success": true,
+  "processing_time_ms": 44.4,
+  "warnings": [],
+  "source_type": "dxf",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 6,
+      "floor_count": 1,
+      "total_wall_length": 1.2,
+      "bounds": {
+        "minx": 0.0,
+        "miny": 0.0,
+        "maxx": 10.0,
+        "maxy": 8.0
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": 0.1
+        },
+        "dimensions": {
+          "width": 0.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "length": 0.2,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 9.9,
+          "y": 1.5,
+          "z": 0.0
+        },
+        "dimensions": {
+          "width": 0.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -3.141593,
+        "layer": "WALL",
+        "length": 0.2,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.0,
+          "y": 1.5,
+          "z": 7.9
+        },
+        "dimensions": {
+          "width": 0.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "length": 0.2,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.1,
+          "y": 1.5,
+          "z": 8.0
+        },
+        "dimensions": {
+          "width": 0.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "length": 0.2,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.9,
+          "y": 1.5,
+          "z": 0.0
+        },
+        "dimensions": {
+          "width": 0.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -3.141593,
+        "layer": "WALL",
+        "length": 0.2,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.0,
+          "y": 1.5,
+          "z": 5.1
+        },
+        "dimensions": {
+          "width": 0.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "length": 0.2,
+        "thickness": 0.2
+      }
+    ],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": 5.0,
+          "y": 0.0,
+          "z": 4.0
+        },
+        "dimensions": {
+          "width": 10.0,
+          "depth": 8.0
+        }
+      }
+    ]
+  },
+  "stats": {
+    "segments_parsed": 18,
+    "wall_segments": 12,
+    "walls_detected": 6,
+    "paired_walls": 0
+  }
+}
