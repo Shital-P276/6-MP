@@ -35,6 +35,7 @@ class ParsedGeometry:
     door_segments:   list[Segment] = field(default_factory=list)
     window_segments: list[Segment] = field(default_factory=list)
     other_segments:  list[Segment] = field(default_factory=list)
+    text_labels:     list          = field(default_factory=list)  # [(x, y, text), ...]
     units: str = "unknown"
     bounds: Optional[dict] = None
 
@@ -80,6 +81,19 @@ class DXFParser:
 
         for entity in doc.modelspace():
             all_segs.extend(self._to_segments(entity))
+            # Collect TEXT / MTEXT entities for room labeling
+            if entity.dxftype() in ("TEXT", "MTEXT"):
+                try:
+                    if entity.dxftype() == "TEXT":
+                        ins = entity.dxf.insert
+                        txt = entity.dxf.text.strip()
+                    else:  # MTEXT
+                        ins = entity.dxf.insert
+                        txt = entity.plain_mtext().strip()
+                    if txt:
+                        result.text_labels.append((ins.x, ins.y, txt))
+                except Exception:
+                    pass
 
         for seg in all_segs:
             cat = classify_layer(seg.layer)

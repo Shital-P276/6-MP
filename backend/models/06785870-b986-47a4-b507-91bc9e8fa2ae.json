@@ -1,0 +1,788 @@
+{
+  "success": true,
+  "processing_time_ms": 287.9,
+  "warnings": [],
+  "source_type": "dxf",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 24,
+      "floor_count": 1,
+      "room_count": 22,
+      "total_wall_length": 111.0,
+      "paired_walls": 24,
+      "bounds": {
+        "minx": -0.1,
+        "miny": -0.1,
+        "maxx": 12.1,
+        "maxy": 9.799999999999999
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [
+      {
+        "type": "box",
+        "position": {
+          "x": 3.4,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 6.8,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "length": 6.8,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.8,
+          "y": 1.5,
+          "z": -2.95
+        },
+        "dimensions": {
+          "width": 5.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "length": 5.9,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.4,
+          "y": 1.5,
+          "z": -5.9
+        },
+        "dimensions": {
+          "width": 6.8,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -3.141593,
+        "length": 6.8,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -2.95
+        },
+        "dimensions": {
+          "width": 5.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 5.9,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.4,
+          "y": 1.5,
+          "z": -5.9
+        },
+        "dimensions": {
+          "width": 6.8,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "length": 6.8,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.8,
+          "y": 1.5,
+          "z": -7.6
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "length": 3.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.4,
+          "y": 1.5,
+          "z": -9.3
+        },
+        "dimensions": {
+          "width": 6.8,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -3.141593,
+        "length": 6.8,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -7.6
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 3.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.0,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 4.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "length": 4.0,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 12.0,
+          "y": 1.5,
+          "z": -1.95
+        },
+        "dimensions": {
+          "width": 3.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "length": 3.9,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.0,
+          "y": 1.5,
+          "z": -3.9
+        },
+        "dimensions": {
+          "width": 4.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -3.141593,
+        "length": 4.0,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 8.0,
+          "y": 1.5,
+          "z": -1.95
+        },
+        "dimensions": {
+          "width": 3.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 3.9,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.0,
+          "y": 1.5,
+          "z": -3.9
+        },
+        "dimensions": {
+          "width": 4.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "length": 4.0,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 12.0,
+          "y": 1.5,
+          "z": -5.45
+        },
+        "dimensions": {
+          "width": 3.1,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "length": 3.1,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.0,
+          "y": 1.5,
+          "z": -7.0
+        },
+        "dimensions": {
+          "width": 4.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -3.141593,
+        "length": 4.0,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 8.0,
+          "y": 1.5,
+          "z": -5.45
+        },
+        "dimensions": {
+          "width": 3.1,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 3.1,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.0,
+          "y": 1.5,
+          "z": -7.0
+        },
+        "dimensions": {
+          "width": 4.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "length": 4.0,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 12.0,
+          "y": 1.5,
+          "z": -8.35
+        },
+        "dimensions": {
+          "width": 2.7,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "length": 2.7,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.0,
+          "y": 1.5,
+          "z": -9.7
+        },
+        "dimensions": {
+          "width": 4.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -3.141593,
+        "length": 4.0,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 8.0,
+          "y": 1.5,
+          "z": -8.35
+        },
+        "dimensions": {
+          "width": 2.7,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 2.7,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 7.4,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 1.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "length": 1.2,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 8.0,
+          "y": 1.5,
+          "z": -4.85
+        },
+        "dimensions": {
+          "width": 9.7,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "length": 9.7,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 7.4,
+          "y": 1.5,
+          "z": -9.7
+        },
+        "dimensions": {
+          "width": 1.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -3.141593,
+        "length": 1.2,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.8,
+          "y": 1.5,
+          "z": -4.85
+        },
+        "dimensions": {
+          "width": 9.7,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 9.7,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      }
+    ],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": 6.0,
+          "y": 0.0,
+          "z": -4.85
+        },
+        "dimensions": {
+          "width": 12.2,
+          "depth": 9.9
+        }
+      }
+    ],
+    "rooms": [
+      {
+        "id": 0,
+        "label": "Living Room",
+        "room_type": "living_room",
+        "color": "#2d6a9f",
+        "area": 0.3,
+        "position": {
+          "x": 3.375,
+          "y": 1.65,
+          "z": 0.05
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 1,
+        "label": "Closet 1",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.0,
+        "position": {
+          "x": 7.35,
+          "y": 1.65,
+          "z": 0.05
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 2,
+        "label": "Bedroom 1",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 0.2,
+        "position": {
+          "x": 9.95,
+          "y": 1.65,
+          "z": 0.05
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 3,
+        "label": "Floor Plan \u2014 6 Rooms  |  12.0m \u00d7 9.7m",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.3,
+        "position": {
+          "x": -0.05,
+          "y": 1.65,
+          "z": -2.925
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 4,
+        "label": "Hallway",
+        "room_type": "hallway",
+        "color": "#3a3a3a",
+        "area": 36.4,
+        "position": {
+          "x": 3.375,
+          "y": 1.65,
+          "z": -2.925
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 5,
+        "label": "Bedroom 2",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 7.9,
+        "position": {
+          "x": 7.35,
+          "y": 1.65,
+          "z": -4.8
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 6,
+        "label": "Closet 2",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.2,
+        "position": {
+          "x": 7.95,
+          "y": 1.65,
+          "z": -1.925
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 7,
+        "label": "Bedroom 1",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 13.1,
+        "position": {
+          "x": 9.95,
+          "y": 1.65,
+          "z": -1.925
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 8,
+        "label": "Closet 3",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.2,
+        "position": {
+          "x": 11.95,
+          "y": 1.65,
+          "z": -1.925
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 9,
+        "label": "Closet 4",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.2,
+        "position": {
+          "x": 9.95,
+          "y": 1.65,
+          "z": -3.9
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 10,
+        "label": "Closet 5",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.1,
+        "position": {
+          "x": 7.95,
+          "y": 1.65,
+          "z": -5.45
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 11,
+        "label": "Bedroom 2",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 10.0,
+        "position": {
+          "x": 9.95,
+          "y": 1.65,
+          "z": -5.45
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 12,
+        "label": "Closet 6",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.1,
+        "position": {
+          "x": 11.95,
+          "y": 1.65,
+          "z": -5.45
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 13,
+        "label": "Kitchen",
+        "room_type": "kitchen",
+        "color": "#7a5a2d",
+        "area": 0.3,
+        "position": {
+          "x": 3.375,
+          "y": 1.65,
+          "z": -5.9
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 14,
+        "label": "Closet 7",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.2,
+        "position": {
+          "x": -0.05,
+          "y": 1.65,
+          "z": -7.6
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 15,
+        "label": "Bedroom 3",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 19.8,
+        "position": {
+          "x": 3.375,
+          "y": 1.65,
+          "z": -7.6
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 16,
+        "label": "Bathroom 1",
+        "room_type": "bathroom",
+        "color": "#2d7a5a",
+        "area": 0.2,
+        "position": {
+          "x": 9.95,
+          "y": 1.65,
+          "z": -7.0
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 17,
+        "label": "Closet 8",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.1,
+        "position": {
+          "x": 7.95,
+          "y": 1.65,
+          "z": -8.325
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 18,
+        "label": "Bathroom 2",
+        "room_type": "bathroom",
+        "color": "#2d7a5a",
+        "area": 8.4,
+        "position": {
+          "x": 9.95,
+          "y": 1.65,
+          "z": -8.325
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 19,
+        "label": "Closet 9",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.1,
+        "position": {
+          "x": 11.95,
+          "y": 1.65,
+          "z": -8.325
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 20,
+        "label": "Closet 10",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.0,
+        "position": {
+          "x": 7.35,
+          "y": 1.65,
+          "z": -9.65
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 21,
+        "label": "Closet 11",
+        "room_type": "closet",
+        "color": "#2a4a3a",
+        "area": 0.2,
+        "position": {
+          "x": 9.95,
+          "y": 1.65,
+          "z": -9.65
+        },
+        "confidence": 0.6
+      }
+    ]
+  },
+  "stats": {
+    "wall_segments": 48,
+    "walls_detected": 24,
+    "paired_walls": 24
+  }
+}

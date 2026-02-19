@@ -497,6 +497,33 @@
       color: var(--accent);
       letter-spacing: 0.15em;
     }
+    /* ── Room labels & legend ── */
+    #room-legend {
+      position: absolute;
+      bottom: 60px;
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text);
+      background: rgba(10,12,15,0.75);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -508,6 +535,9 @@
   </div>
   <div class="header-stats">
     <div class="stat">WALLS <span id="h-walls">—</span></div>
+    <div class="stat">ROOMS <span id="h-rooms">—</span></div>
+    <div class="stat">DOORS <span id="h-doors">—</span></div>
+    <div class="stat">WIN <span id="h-windows">—</span></div>
     <div class="stat">LENGTH <span id="h-length">—</span></div>
     <div class="stat">BOUNDS <span id="h-bounds">—</span></div>
     <div class="stat">TIME <span id="h-time">—</span></div>
@@ -574,6 +604,9 @@
         <button class="toggle-btn active" id="tog-solid" onclick="toggleSolid()">SOLID</button>
         <button class="toggle-btn active" id="tog-wire" onclick="toggleWire()">WIRE</button>
         <button class="toggle-btn active" id="tog-floor" onclick="toggleFloor()">FLOOR</button>
+        <button class="toggle-btn active" id="tog-labels" onclick="toggleLabels()">LABELS</button>
+        <button class="toggle-btn active" id="tog-doors" onclick="toggleDoors()">DOORS</button>
+        <button class="toggle-btn active" id="tog-windows" onclick="toggleWindows()">WIN</button>
       </div>
     </div>
 
@@ -583,6 +616,9 @@
       <div id="model-info">
         <div class="info-row"><span class="info-key">status</span><span class="info-val" id="info-status">idle</span></div>
         <div class="info-row"><span class="info-key">walls</span><span class="info-val" id="info-walls">—</span></div>
+        <div class="info-row"><span class="info-key">rooms</span><span class="info-val" id="info-rooms">—</span></div>
+        <div class="info-row"><span class="info-key">doors</span><span class="info-val" id="info-doors">—</span></div>
+        <div class="info-row"><span class="info-key">windows</span><span class="info-val" id="info-windows">—</span></div>
         <div class="info-row"><span class="info-key">total length</span><span class="info-val" id="info-length">—</span></div>
         <div class="info-row"><span class="info-key">width</span><span class="info-val" id="info-width">—</span></div>
         <div class="info-row"><span class="info-key">depth</span><span class="info-val" id="info-depth">—</span></div>
@@ -612,12 +648,16 @@
       <div class="loading-text" id="loading-text">PROCESSING...</div>
     </div>
 
+    <!-- Room legend -->
+    <div id="room-legend"></div>
+
     <!-- Corner overlays -->
     <div class="canvas-overlay overlay-tl">
       <div class="badge" id="view-badge">PERSPECTIVE</div>
     </div>
     <div class="canvas-overlay overlay-br">
       <div class="badge">ORBIT: drag · ZOOM: scroll · PAN: right-drag</div>
+      <div class="badge" id="shortcut-hint" style="opacity:0.5;font-size:9px">1–4: views · S/W/F/L: toggles · Space: process</div>
     </div>
 
   </div>
@@ -700,6 +740,10 @@ function log(msg, type = 'info') {
 // ─────────────────────────────────────────────────────────────────────────────
 let scene, camera, renderer, controls;
 let wallMeshes = [], wireMeshes = [], floorMesh;
+let labelSprites = [];
+let showLabels = true;
+let doorMeshes = [], windowMeshes = [];
+let showDoors = true, showWindows = true;
 let showSolid = true, showWire = true, showFloor = true;
 let currentView = 'perspective';
 let modelLoaded = false;
@@ -829,6 +873,46 @@ function setupOrbitControls() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Room label sprites
+// ─────────────────────────────────────────────────────────────────────────────
+function createLabelSprite(room) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 320; canvas.height = 96;
+  const ctx = canvas.getContext('2d');
+
+  const hex = room.color || '#2d6a9f';
+  ctx.fillStyle = hex + 'cc';
+  ctx.beginPath();
+  ctx.roundRect(4, 4, 312, 88, 12);
+  ctx.fill();
+
+  ctx.strokeStyle = hex;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(4, 4, 312, 88, 12);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 26px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(room.label, 160, 36);
+
+  ctx.fillStyle = '#ffffffaa';
+  ctx.font = '20px monospace';
+  ctx.fillText(room.area.toFixed(1) + ' m²', 160, 66);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  const aspect = 320 / 96;
+  sprite.scale.set(2.5 * aspect, 2.5, 1);
+  sprite.position.set(room.position.x, room.position.y, room.position.z);
+  sprite.renderOrder = 999;
+  return sprite;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Build 3D model from API response
 // ─────────────────────────────────────────────────────────────────────────────
 function buildModel(data) {
@@ -893,14 +977,111 @@ function buildModel(data) {
     scene.add(floorMesh);
   }
 
+  // Build doors
+  doorMeshes.forEach(m => scene.remove(m));
+  doorMeshes = [];
+  if (model.doors && model.doors.length > 0) {
+    const voidMat = new THREE.MeshPhongMaterial({
+      color: 0x050a0f,
+      emissive: 0x000000,
+    });
+    const leafMat = new THREE.MeshPhongMaterial({
+      color: 0x8b6914,
+      emissive: 0x2a1a00,
+      specular: 0xffaa44,
+      shininess: 40,
+    });
+    model.doors.forEach(d => {
+      // Door leaf (thin box at 45°)
+      if (d.leaf) {
+        const leaf = d.leaf;
+        const lgeo = new THREE.BoxGeometry(leaf.dimensions.width, leaf.dimensions.height, leaf.dimensions.depth);
+        const lmesh = new THREE.Mesh(lgeo, leafMat.clone());
+        lmesh.position.set(leaf.position.x, leaf.position.y, leaf.position.z);
+        lmesh.rotation.y = leaf.rotation_y;
+        lmesh.castShadow = true;
+        scene.add(lmesh);
+        doorMeshes.push(lmesh);
+        // Wireframe edge
+        const ledge = new THREE.EdgesGeometry(lgeo);
+        const lwire = new THREE.LineSegments(ledge, new THREE.LineBasicMaterial({color:0xffaa44,transparent:true,opacity:0.6}));
+        lwire.position.copy(lmesh.position); lwire.rotation.copy(lmesh.rotation);
+        scene.add(lwire); doorMeshes.push(lwire);
+      }
+      // Door frame outline (thin lines marking the opening)
+      const frameGeo = new THREE.BoxGeometry(d.width, 0.05, d.depth + 0.02);
+      const topFrame = new THREE.Mesh(frameGeo, new THREE.MeshPhongMaterial({color:0xffaa44,emissive:0x221100}));
+      topFrame.position.set(d.position.x, d.height - 0.025, d.position.z);
+      topFrame.rotation.y = d.rotation_y;
+      scene.add(topFrame); doorMeshes.push(topFrame);
+    });
+  }
+
+  // Build windows
+  windowMeshes.forEach(m => scene.remove(m));
+  windowMeshes = [];
+  if (model.windows && model.windows.length > 0) {
+    const wallMat2 = new THREE.MeshPhongMaterial({
+      color: 0x1a2535, emissive: 0x050d1a,
+      specular: 0x00e5ff, shininess: 30,
+    });
+    const glassMat = new THREE.MeshPhongMaterial({
+      color: 0x88ccff,
+      emissive: 0x002244,
+      transparent: true,
+      opacity: 0.35,
+      specular: 0xffffff,
+      shininess: 120,
+      side: THREE.DoubleSide,
+    });
+    const frameColor = new THREE.LineBasicMaterial({color:0x88ccff,transparent:true,opacity:0.7});
+    model.windows.forEach(w => {
+      if (!w.pieces) return;
+      w.pieces.forEach(p => {
+        const mat = p.kind === 'glass' ? glassMat.clone() : wallMat2.clone();
+        const geo = new THREE.BoxGeometry(p.dimensions.width, p.dimensions.height, p.dimensions.depth);
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(p.position.x, p.position.y, p.position.z);
+        mesh.rotation.y = p.rotation_y;
+        mesh.castShadow = (p.kind !== 'glass');
+        mesh.receiveShadow = true;
+        scene.add(mesh); windowMeshes.push(mesh);
+        if (p.kind === 'glass') {
+          const edge = new THREE.EdgesGeometry(geo);
+          const wire = new THREE.LineSegments(edge, frameColor.clone());
+          wire.position.copy(mesh.position); wire.rotation.copy(mesh.rotation);
+          scene.add(wire); windowMeshes.push(wire);
+        }
+      });
+    });
+  }
+
+  // Build room labels
+  labelSprites.forEach(s => scene.remove(s));
+  labelSprites = [];
+  const legend = document.getElementById('room-legend');
+  legend.innerHTML = '';
+
+  if (model.rooms && model.rooms.length > 0) {
+    model.rooms.forEach(room => {
+      const sprite = createLabelSprite(room);
+      scene.add(sprite);
+      labelSprites.push(sprite);
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `<div class="legend-dot" style="background:${room.color}"></div><span>${room.label}</span><span style="color:#6a7a8a;margin-left:4px">${room.area.toFixed(0)}m²</span>`;
+      legend.appendChild(item);
+    });
+  }
+
   // Update visibility
   applyVisibility();
 
-  // Center camera on model
+  // Center camera on model — Z is negated (DXF-Y → Three.js -Z)
   const bounds = model.metadata.bounds;
   if (bounds && window._orbit) {
     const cx = (bounds.minx + bounds.maxx) / 2;
-    const cz = (bounds.miny + bounds.maxy) / 2;
+    const cz = -((bounds.miny + bounds.maxy) / 2);
     const size = Math.max(bounds.maxx - bounds.minx, bounds.maxy - bounds.miny);
     window._orbit.target.set(cx, 0, cz);
     window._orbit.spherical.radius = size * 2;
@@ -910,6 +1091,9 @@ function buildModel(data) {
   // Update stats
   const meta = model.metadata;
   document.getElementById('h-walls').textContent = meta.wall_count;
+  document.getElementById('h-rooms').textContent = meta.room_count || 0;
+  document.getElementById('h-doors').textContent = meta.door_count || 0;
+  document.getElementById('h-windows').textContent = meta.window_count || 0;
   document.getElementById('h-length').textContent = meta.total_wall_length + 'm';
   document.getElementById('h-bounds').textContent =
     `${(meta.bounds.maxx - meta.bounds.minx).toFixed(0)}×${(meta.bounds.maxy - meta.bounds.miny).toFixed(0)}m`;
@@ -917,6 +1101,9 @@ function buildModel(data) {
 
   document.getElementById('info-status').textContent = 'loaded';
   document.getElementById('info-walls').textContent = meta.wall_count;
+  document.getElementById('info-rooms').textContent = meta.room_count || 0;
+  document.getElementById('info-doors').textContent = meta.door_count || 0;
+  document.getElementById('info-windows').textContent = meta.window_count || 0;
   document.getElementById('info-length').textContent = meta.total_wall_length + 'm';
   document.getElementById('info-width').textContent = (meta.bounds.maxx - meta.bounds.minx).toFixed(2) + 'm';
   document.getElementById('info-depth').textContent = (meta.bounds.maxy - meta.bounds.miny).toFixed(2) + 'm';
@@ -1015,6 +1202,9 @@ function applyVisibility() {
   wallMeshes.forEach(m => m.visible = showSolid);
   wireMeshes.forEach(m => m.visible = showWire);
   if (floorMesh) floorMesh.visible = showFloor;
+  labelSprites.forEach(s => s.visible = showLabels);
+  doorMeshes.forEach(m => m.visible = showDoors);
+  windowMeshes.forEach(m => m.visible = showWindows);
 }
 
 function toggleSolid() {
@@ -1033,6 +1223,25 @@ function toggleFloor() {
   showFloor = !showFloor;
   document.getElementById('tog-floor').classList.toggle('active', showFloor);
   applyVisibility();
+}
+
+function toggleLabels() {
+  showLabels = !showLabels;
+  document.getElementById('tog-labels').classList.toggle('active', showLabels);
+  labelSprites.forEach(s => s.visible = showLabels);
+  document.getElementById('room-legend').style.display = showLabels ? '' : 'none';
+}
+
+function toggleDoors() {
+  showDoors = !showDoors;
+  document.getElementById('tog-doors').classList.toggle('active', showDoors);
+  doorMeshes.forEach(m => m.visible = showDoors);
+}
+
+function toggleWindows() {
+  showWindows = !showWindows;
+  document.getElementById('tog-windows').classList.toggle('active', showWindows);
+  windowMeshes.forEach(m => m.visible = showWindows);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1087,9 +1296,63 @@ document.getElementById('scale').addEventListener('input', e => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Init
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Keyboard shortcuts
+// ─────────────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // Don't fire when typing in an input field
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  const key = e.key.toLowerCase();
+
+  // Views: 1=perspective, 2=top, 3=front, 4=side
+  const viewMap = { '1':'perspective', '2':'top', '3':'front', '4':'side' };
+  if (viewMap[key]) {
+    const view = viewMap[key];
+    // Activate correct button visually
+    document.querySelectorAll('.toggle-btn[onclick^="setView"]').forEach(b => b.classList.remove('active'));
+    const btns = {'perspective':0,'top':1,'front':2,'side':3};
+    document.querySelectorAll('.toggle-btn[onclick^="setView"]')[btns[view]]?.classList.add('active');
+    // Apply view
+    if (!window._orbit) return;
+    const { spherical, update } = window._orbit;
+    const labels = { perspective:'PERSPECTIVE', top:'TOP VIEW', front:'FRONT VIEW', side:'SIDE VIEW' };
+    document.getElementById('view-badge').textContent = labels[view];
+    if (view === 'top')         { spherical.phi = 0.05;         spherical.theta = 0; }
+    else if (view === 'front')  { spherical.phi = Math.PI/2;    spherical.theta = 0; }
+    else if (view === 'side')   { spherical.phi = Math.PI/2;    spherical.theta = Math.PI/2; }
+    else                        { spherical.phi = Math.PI/3;    spherical.theta = Math.PI/4; }
+    update();
+    return;
+  }
+
+  // Toggles: S=solid, W=wire, F=floor
+  if (key === 's') { toggleSolid(); return; }
+  if (key === 'w') { toggleWire();  return; }
+  if (key === 'f') { toggleFloor(); return; }
+  if (key === 'l') { toggleLabels(); return; }
+
+  // Space = process (if file selected)
+  if (key === ' ' || e.code === 'Space') {
+    e.preventDefault();
+    if (window._pendingFile) uploadAndProcess(window._pendingFile);
+    return;
+  }
+
+  // R = reset camera to perspective
+  if (key === 'r') {
+    if (!window._orbit) return;
+    const { spherical, update } = window._orbit;
+    spherical.phi = Math.PI/3; spherical.theta = Math.PI/4;
+    update();
+    return;
+  }
+});
+
 initThree();
 checkAPI();
 log('Viewer ready — upload a DXF to begin', 'ok');
+log('Shortcuts: 1-4 views · S/W/F/L toggles · Space process · R reset', 'info');
 </script>
 </body>
 </html>

@@ -8,6 +8,8 @@ import time
 from .dxf_parser import DXFParser, ParsedGeometry
 from .wall_detector import WallDetector, Wall
 from .geometry_builder import GeometryBuilder, BuildingModel
+from .room_detector import RoomDetector
+from .opening_detector import OpeningDetector
 
 try:
     from .raster_parser import RasterParser
@@ -44,9 +46,12 @@ class PipelineResult:
             "applied_scale": self.applied_scale,
             "model": self.model.to_dict() if self.model else None,
             "stats": {
-                "wall_segments":  len(self.geometry.wall_segments) if self.geometry else 0,
-                "walls_detected": len(self.walls) if self.walls else 0,
-                "paired_walls":   sum(1 for w in self.walls if w.paired) if self.walls else 0,
+                "wall_segments":    len(self.geometry.wall_segments) if self.geometry else 0,
+                "walls_detected":   len(self.walls) if self.walls else 0,
+                "paired_walls":     sum(1 for w in self.walls if w.paired) if self.walls else 0,
+                "rooms_detected":   self.model.metadata.get("room_count", 0) if self.model else 0,
+                "doors_detected":   self.model.metadata.get("door_count", 0) if self.model else 0,
+                "windows_detected": self.model.metadata.get("window_count", 0) if self.model else 0,
             },
         }
 
@@ -140,8 +145,19 @@ class ProcessingPipeline:
                     "they'll be detected with default thickness."
                 )
 
+            # ── Detect rooms ─────────────────────────────────────────────────
+            text_labels = getattr(geometry, 'text_labels', None)
+            rooms = RoomDetector().detect(geometry.wall_segments, text_labels=text_labels)
+
+            # ── Detect doors & windows ───────────────────────────────────────
+            openings = OpeningDetector().detect(geometry, walls)
+
             # ── Build 3D model ───────────────────────────────────────────────
-            model = GeometryBuilder().build(walls, bounds=geometry.bounds)
+            model = GeometryBuilder().build(
+                walls, bounds=geometry.bounds,
+                rooms=rooms, openings=openings,
+                wall_height=self.wall_height,
+            )
 
             return PipelineResult(
                 success=True,

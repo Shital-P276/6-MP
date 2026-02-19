@@ -1,0 +1,823 @@
+{
+  "success": true,
+  "processing_time_ms": 242.7,
+  "warnings": [],
+  "source_type": "dxf",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 30,
+      "floor_count": 1,
+      "room_count": 7,
+      "door_count": 6,
+      "window_count": 0,
+      "total_wall_length": 93.67,
+      "paired_walls": 0,
+      "bounds": {
+        "minx": 0.0,
+        "miny": 0.0,
+        "maxx": 10.100000000000001,
+        "maxy": 13.4
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [
+      {
+        "type": "box",
+        "position": {
+          "x": 0.45,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 0.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.9,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.675,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 1.65,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.65,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.5,
+          "y": 1.5,
+          "z": -2.05
+        },
+        "dimensions": {
+          "width": 4.1,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.45,
+          "y": 1.5,
+          "z": -4.1
+        },
+        "dimensions": {
+          "width": 0.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.9,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.675,
+          "y": 1.5,
+          "z": -4.1
+        },
+        "dimensions": {
+          "width": 1.65,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.65,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -2.05
+        },
+        "dimensions": {
+          "width": 4.1,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.5,
+          "y": 1.5,
+          "z": -5.55
+        },
+        "dimensions": {
+          "width": 2.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.45,
+          "y": 1.5,
+          "z": -7.0
+        },
+        "dimensions": {
+          "width": 0.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.9,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.675,
+          "y": 1.5,
+          "z": -7.0
+        },
+        "dimensions": {
+          "width": 1.65,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.65,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -5.55
+        },
+        "dimensions": {
+          "width": 2.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.5,
+          "y": 1.5,
+          "z": -8.7
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.45,
+          "y": 1.5,
+          "z": -10.4
+        },
+        "dimensions": {
+          "width": 0.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.9,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.675,
+          "y": 1.5,
+          "z": -10.4
+        },
+        "dimensions": {
+          "width": 1.65,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.65,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -8.7
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.5,
+          "y": 1.5,
+          "z": -11.9
+        },
+        "dimensions": {
+          "width": 3.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 2.25,
+          "y": 1.5,
+          "z": -13.4
+        },
+        "dimensions": {
+          "width": 4.5,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -11.9
+        },
+        "dimensions": {
+          "width": 3.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.135,
+          "y": 1.5,
+          "z": -4.3
+        },
+        "dimensions": {
+          "width": 0.87,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.87,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 9.3,
+          "y": 1.5,
+          "z": -4.3
+        },
+        "dimensions": {
+          "width": 1.6,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.6,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.1,
+          "y": 1.5,
+          "z": -6.0
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.135,
+          "y": 1.5,
+          "z": -7.7
+        },
+        "dimensions": {
+          "width": 0.87,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.87,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 8.785,
+          "y": 1.5,
+          "z": -7.7
+        },
+        "dimensions": {
+          "width": 2.63,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 2.63,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.7,
+          "y": 1.5,
+          "z": -6.0
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.1,
+          "y": 1.5,
+          "z": -9.15
+        },
+        "dimensions": {
+          "width": 2.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 7.9,
+          "y": 1.5,
+          "z": -10.6
+        },
+        "dimensions": {
+          "width": 4.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.7,
+          "y": 1.5,
+          "z": -9.15
+        },
+        "dimensions": {
+          "width": 2.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.1,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 1.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.7,
+          "y": 1.5,
+          "z": -6.7
+        },
+        "dimensions": {
+          "width": 13.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.1,
+          "y": 1.5,
+          "z": -13.4
+        },
+        "dimensions": {
+          "width": 1.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.5,
+          "y": 1.5,
+          "z": -6.7
+        },
+        "dimensions": {
+          "width": 13.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      }
+    ],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": 5.05,
+          "y": 0.0,
+          "z": -6.7
+        },
+        "dimensions": {
+          "width": 10.1,
+          "depth": 13.4
+        }
+      }
+    ],
+    "rooms": [
+      {
+        "id": 0,
+        "label": "Living Room",
+        "room_type": "living_room",
+        "color": "#2d6a9f",
+        "area": 17.2,
+        "position": {
+          "x": 2.2,
+          "y": 1.65,
+          "z": -2.0
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 1,
+        "label": "Hallway",
+        "room_type": "hallway",
+        "color": "#3a3a3a",
+        "area": 14.0,
+        "position": {
+          "x": 5.05,
+          "y": 1.65,
+          "z": -6.675
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 2,
+        "label": "Kitchen",
+        "room_type": "kitchen",
+        "color": "#7a5a2d",
+        "area": 12.0,
+        "position": {
+          "x": 2.2,
+          "y": 1.65,
+          "z": -5.5
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 3,
+        "label": "Bedroom 2",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 14.0,
+        "position": {
+          "x": 7.875,
+          "y": 1.65,
+          "z": -5.95
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 4,
+        "label": "Dining Room",
+        "room_type": "dining",
+        "color": "#7a3a2d",
+        "area": 14.4,
+        "position": {
+          "x": 2.2,
+          "y": 1.65,
+          "z": -8.675
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 5,
+        "label": "Bathroom",
+        "room_type": "bathroom",
+        "color": "#2d7a5a",
+        "area": 11.8,
+        "position": {
+          "x": 7.875,
+          "y": 1.65,
+          "z": -9.1
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 6,
+        "label": "Office",
+        "room_type": "office",
+        "color": "#2d4a7a",
+        "area": 12.4,
+        "position": {
+          "x": 2.2,
+          "y": 1.65,
+          "z": -11.9
+        },
+        "confidence": 0.8999999999999999
+      }
+    ],
+    "doors": [
+      {
+        "position": {
+          "x": 1.875,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "width": 1.95,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 1.875,
+            "y": 1.5,
+            "z": -0.0
+          },
+          "dimensions": {
+            "width": 1.95,
+            "height": 3.0,
+            "depth": 0.05
+          },
+          "rotation_y": 0.785398
+        }
+      },
+      {
+        "position": {
+          "x": 1.875,
+          "y": 1.5,
+          "z": -4.1
+        },
+        "width": 1.95,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 1.875,
+            "y": 1.5,
+            "z": -4.1
+          },
+          "dimensions": {
+            "width": 1.95,
+            "height": 3.0,
+            "depth": 0.05
+          },
+          "rotation_y": 0.785398
+        }
+      },
+      {
+        "position": {
+          "x": 1.875,
+          "y": 1.5,
+          "z": -7.0
+        },
+        "width": 1.95,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 1.875,
+            "y": 1.5,
+            "z": -7.0
+          },
+          "dimensions": {
+            "width": 1.95,
+            "height": 3.0,
+            "depth": 0.05
+          },
+          "rotation_y": 0.785398
+        }
+      },
+      {
+        "position": {
+          "x": 1.875,
+          "y": 1.5,
+          "z": -10.4
+        },
+        "width": 1.95,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 1.875,
+            "y": 1.5,
+            "z": -10.4
+          },
+          "dimensions": {
+            "width": 1.95,
+            "height": 3.0,
+            "depth": 0.05
+          },
+          "rotation_y": 0.785398
+        }
+      },
+      {
+        "position": {
+          "x": 7.535,
+          "y": 1.5,
+          "z": -4.3
+        },
+        "width": 1.93,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 7.535,
+            "y": 1.5,
+            "z": -4.3
+          },
+          "dimensions": {
+            "width": 1.93,
+            "height": 3.0,
+            "depth": 0.05
+          },
+          "rotation_y": 0.785398
+        }
+      },
+      {
+        "position": {
+          "x": 7.02,
+          "y": 1.5,
+          "z": -7.7
+        },
+        "width": 0.9,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 7.02,
+            "y": 1.5,
+            "z": -7.7
+          },
+          "dimensions": {
+            "width": 0.9,
+            "height": 3.0,
+            "depth": 0.05
+          },
+          "rotation_y": 0.785398
+        }
+      }
+    ],
+    "windows": []
+  },
+  "stats": {
+    "wall_segments": 24,
+    "walls_detected": 24,
+    "paired_walls": 0,
+    "rooms_detected": 7,
+    "doors_detected": 6,
+    "windows_detected": 0
+  }
+}
