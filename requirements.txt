@@ -1,0 +1,14 @@
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+ezdxf==1.3.0
+shapely==2.0.4
+python-multipart==0.0.9
+
+# Image & PDF support
+opencv-python==4.9.0.80
+Pillow==10.3.0
+pdf2image==1.17.0
+numpy==1.26.4
+
+# GUI — tkinter comes built-in with Python, no pip needed
+# On Windows it's included. On Ubuntu: sudo apt install python3-tk

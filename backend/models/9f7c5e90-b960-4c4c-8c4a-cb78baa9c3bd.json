@@ -1,0 +1,44 @@
+{
+  "success": true,
+  "processing_time_ms": 79.6,
+  "warnings": [
+    "Wall detection produced no results. Try adjusting scale or Hough parameters."
+  ],
+  "source_type": "dxf",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 0,
+      "floor_count": 1,
+      "total_wall_length": 0,
+      "bounds": {
+        "minx": -0.1,
+        "miny": -0.1,
+        "maxx": 9.9,
+        "maxy": 13.299999999999999
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": 4.9,
+          "y": 0.0,
+          "z": 6.6
+        },
+        "dimensions": {
+          "width": 10.0,
+          "depth": 13.4
+        }
+      }
+    ]
+  },
+  "stats": {
+    "segments_parsed": 192,
+    "wall_segments": 64,
+    "walls_detected": 0,
+    "paired_walls": 0
+  }
+}

@@ -1,0 +1,3560 @@
+{
+  "success": true,
+  "processing_time_ms": 881.6,
+  "warnings": [],
+  "model": {
+    "metadata": {
+      "wall_count": 220,
+      "floor_count": 1,
+      "total_wall_length": 25178.98,
+      "bounds": {
+        "minx": -684.0621483962348,
+        "miny": -220.6328682384362,
+        "maxx": 182.0902808298651,
+        "maxy": 351.3671317615638
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [
+      {
+        "type": "box",
+        "position": {
+          "x": -645.5459,
+          "y": 2.8,
+          "z": 626.3911
+        },
+        "dimensions": {
+          "width": 112.6863,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 112.6863
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 281.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 278.4541,
+          "y": 2.8,
+          "z": 285.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 289.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 286.4541,
+          "y": 2.8,
+          "z": 285.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 285.7343
+        },
+        "dimensions": {
+          "width": 11.3137,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": 2.356194,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 11.3137
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 285.7343
+        },
+        "dimensions": {
+          "width": 11.3137,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": 0.785398,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 11.3137
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 446.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 278.4541,
+          "y": 2.8,
+          "z": 450.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 454.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 286.4541,
+          "y": 2.8,
+          "z": 450.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 450.7343
+        },
+        "dimensions": {
+          "width": 11.3137,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": 2.356194,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 11.3137
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 450.7343
+        },
+        "dimensions": {
+          "width": 11.3137,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": 0.785398,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 11.3137
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 619.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 278.4541,
+          "y": 2.8,
+          "z": 615.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 611.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 286.4541,
+          "y": 2.8,
+          "z": 615.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 615.7343
+        },
+        "dimensions": {
+          "width": 11.3137,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -0.785398,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 11.3137
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 615.7343
+        },
+        "dimensions": {
+          "width": 11.3137,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -2.356194,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 11.3137
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 294.4541,
+          "y": 2.8,
+          "z": 450.7343
+        },
+        "dimensions": {
+          "width": 160.0,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 160.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -589.2027,
+          "y": 2.8,
+          "z": 682.7343
+        },
+        "dimensions": {
+          "width": 112.6863,
+          "height": 5.6,
+          "depth": 0.05
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 112.6863
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -599.5459,
+          "y": 2.8,
+          "z": 78.7343
+        },
+        "dimensions": {
+          "width": 20.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 20.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -601.5459,
+          "y": 2.8,
+          "z": 90.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -553.5459,
+          "y": 2.8,
+          "z": 694.7343
+        },
+        "dimensions": {
+          "width": 224.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 224.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -481.5459,
+          "y": 2.8,
+          "z": 682.7343
+        },
+        "dimensions": {
+          "width": 80.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 80.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -433.5459,
+          "y": 2.8,
+          "z": 174.7343
+        },
+        "dimensions": {
+          "width": 168.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 168.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -425.5459,
+          "y": 2.8,
+          "z": 170.7343
+        },
+        "dimensions": {
+          "width": 160.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 160.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 94.4541,
+          "y": 2.8,
+          "z": -124.2657
+        },
+        "dimensions": {
+          "width": 618.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 618.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 82.4541,
+          "y": 2.8,
+          "z": -171.2657
+        },
+        "dimensions": {
+          "width": 500.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 500.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 57.4541,
+          "y": 2.8,
+          "z": -433.2657
+        },
+        "dimensions": {
+          "width": 74.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 74.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 51.4541,
+          "y": 2.8,
+          "z": -421.2657
+        },
+        "dimensions": {
+          "width": 62.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 62.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 82.4541,
+          "y": 2.8,
+          "z": 137.7343
+        },
+        "dimensions": {
+          "width": 94.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 94.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -425.5459,
+          "y": 2.8,
+          "z": -171.2657
+        },
+        "dimensions": {
+          "width": 500.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 500.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -400.5459,
+          "y": 2.8,
+          "z": -433.2657
+        },
+        "dimensions": {
+          "width": 74.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 74.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -394.5459,
+          "y": 2.8,
+          "z": -421.2657
+        },
+        "dimensions": {
+          "width": 62.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 62.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -298.0459,
+          "y": 2.8,
+          "z": 78.7343
+        },
+        "dimensions": {
+          "width": 255.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 255.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -373.5459,
+          "y": 2.8,
+          "z": 90.7343
+        },
+        "dimensions": {
+          "width": 104.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 104.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -250.5459,
+          "y": 2.8,
+          "z": 90.7343
+        },
+        "dimensions": {
+          "width": 126.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 126.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -187.5459,
+          "y": 2.8,
+          "z": 137.2343
+        },
+        "dimensions": {
+          "width": 93.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 93.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -179.5459,
+          "y": 2.8,
+          "z": 137.2343
+        },
+        "dimensions": {
+          "width": 93.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 93.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -175.0459,
+          "y": 2.8,
+          "z": 90.7343
+        },
+        "dimensions": {
+          "width": 9.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 9.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -321.5459,
+          "y": 2.8,
+          "z": 137.2343
+        },
+        "dimensions": {
+          "width": 93.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 93.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -313.5459,
+          "y": 2.8,
+          "z": 137.2343
+        },
+        "dimensions": {
+          "width": 93.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 93.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -447.5459,
+          "y": 2.8,
+          "z": 78.7343
+        },
+        "dimensions": {
+          "width": 20.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 20.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -445.5459,
+          "y": 2.8,
+          "z": 90.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -541.5459,
+          "y": 2.8,
+          "z": 78.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -541.5459,
+          "y": 2.8,
+          "z": 90.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -243.5459,
+          "y": 2.8,
+          "z": 682.7343
+        },
+        "dimensions": {
+          "width": 108.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 108.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 94.4541,
+          "y": 2.8,
+          "z": 353.7343
+        },
+        "dimensions": {
+          "width": 194.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 194.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 82.4541,
+          "y": 2.8,
+          "z": 353.7343
+        },
+        "dimensions": {
+          "width": 194.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 194.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -61.5459,
+          "y": 2.8,
+          "z": 694.7343
+        },
+        "dimensions": {
+          "width": 160.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 160.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -61.5459,
+          "y": 2.8,
+          "z": 682.7343
+        },
+        "dimensions": {
+          "width": 160.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 160.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 82.4541,
+          "y": 2.8,
+          "z": 638.7343
+        },
+        "dimensions": {
+          "width": 88.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 88.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 80.4541,
+          "y": 2.8,
+          "z": 694.7343
+        },
+        "dimensions": {
+          "width": 28.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 28.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 74.4541,
+          "y": 2.8,
+          "z": 682.7343
+        },
+        "dimensions": {
+          "width": 16.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 16.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -335.5459,
+          "y": 2.8,
+          "z": 258.7343
+        },
+        "dimensions": {
+          "width": 196.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 196.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -373.5459,
+          "y": 2.8,
+          "z": 250.7343
+        },
+        "dimensions": {
+          "width": 104.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 104.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -250.5459,
+          "y": 2.8,
+          "z": 250.7343
+        },
+        "dimensions": {
+          "width": 126.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 126.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -237.5459,
+          "y": 2.8,
+          "z": 316.7343
+        },
+        "dimensions": {
+          "width": 116.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 116.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -229.5459,
+          "y": 2.8,
+          "z": 316.7343
+        },
+        "dimensions": {
+          "width": 116.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 116.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -204.5459,
+          "y": 2.8,
+          "z": 258.7343
+        },
+        "dimensions": {
+          "width": 50.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 50.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -179.5459,
+          "y": 2.8,
+          "z": 251.2343
+        },
+        "dimensions": {
+          "width": 15.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 15.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -187.5459,
+          "y": 2.8,
+          "z": 247.2343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -233.5459,
+          "y": 2.8,
+          "z": 374.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -313.5459,
+          "y": 2.8,
+          "z": 247.2343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -321.5459,
+          "y": 2.8,
+          "z": 247.2343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -243.5459,
+          "y": 2.8,
+          "z": 694.7343
+        },
+        "dimensions": {
+          "width": 108.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 108.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -961.5459,
+          "y": 2.8,
+          "z": 118.7343
+        },
+        "dimensions": {
+          "width": 264.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 264.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -953.5459,
+          "y": 2.8,
+          "z": 112.7343
+        },
+        "dimensions": {
+          "width": 276.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 276.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1285.5459,
+          "y": 2.8,
+          "z": 118.7343
+        },
+        "dimensions": {
+          "width": 264.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 264.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1012.5459,
+          "y": 2.8,
+          "z": -13.2657
+        },
+        "dimensions": {
+          "width": 102.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 102.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1014.5459,
+          "y": 2.8,
+          "z": -25.2657
+        },
+        "dimensions": {
+          "width": 98.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 98.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -621.5459,
+          "y": 2.8,
+          "z": 82.7343
+        },
+        "dimensions": {
+          "width": 192.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 192.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -716.5459,
+          "y": 2.8,
+          "z": -61.2657
+        },
+        "dimensions": {
+          "width": 78.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 78.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -710.5459,
+          "y": 2.8,
+          "z": -73.2657
+        },
+        "dimensions": {
+          "width": 90.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 90.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -677.5459,
+          "y": 2.8,
+          "z": -31.2657
+        },
+        "dimensions": {
+          "width": 60.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 60.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -645.5459,
+          "y": 2.8,
+          "z": -13.2657
+        },
+        "dimensions": {
+          "width": 48.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 48.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -669.5459,
+          "y": 2.8,
+          "z": 218.7343
+        },
+        "dimensions": {
+          "width": 64.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 64.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -613.5459,
+          "y": 2.8,
+          "z": 250.7343
+        },
+        "dimensions": {
+          "width": 16.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 16.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -914.5459,
+          "y": 2.8,
+          "z": -61.2657
+        },
+        "dimensions": {
+          "width": 78.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 78.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -920.5459,
+          "y": 2.8,
+          "z": -73.2657
+        },
+        "dimensions": {
+          "width": 90.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 90.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -953.5459,
+          "y": 2.8,
+          "z": -43.2657
+        },
+        "dimensions": {
+          "width": 36.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 36.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1234.5459,
+          "y": 2.8,
+          "z": -13.2657
+        },
+        "dimensions": {
+          "width": 102.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 102.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1240.5459,
+          "y": 2.8,
+          "z": -25.2657
+        },
+        "dimensions": {
+          "width": 114.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 114.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1032.0459,
+          "y": 2.8,
+          "z": 258.7343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1093.0459,
+          "y": 2.8,
+          "z": 250.7343
+        },
+        "dimensions": {
+          "width": 129.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 129.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1155.0459,
+          "y": 2.8,
+          "z": 346.7343
+        },
+        "dimensions": {
+          "width": 261.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 261.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1030.0459,
+          "y": 2.8,
+          "z": 338.7343
+        },
+        "dimensions": {
+          "width": 11.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 11.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1003.5459,
+          "y": 2.8,
+          "z": 682.7343
+        },
+        "dimensions": {
+          "width": 92.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 92.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -905.5459,
+          "y": 2.8,
+          "z": 694.7343
+        },
+        "dimensions": {
+          "width": 288.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 288.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -957.5459,
+          "y": 2.8,
+          "z": 649.2343
+        },
+        "dimensions": {
+          "width": 67.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 67.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -949.5459,
+          "y": 2.8,
+          "z": 649.2343
+        },
+        "dimensions": {
+          "width": 67.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 67.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -781.5459,
+          "y": 2.8,
+          "z": 649.2343
+        },
+        "dimensions": {
+          "width": 67.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 67.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -773.5459,
+          "y": 2.8,
+          "z": 649.2343
+        },
+        "dimensions": {
+          "width": 67.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 67.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -653.5459,
+          "y": 2.8,
+          "z": 615.7343
+        },
+        "dimensions": {
+          "width": 134.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 134.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -750.0459,
+          "y": 2.8,
+          "z": 258.7343
+        },
+        "dimensions": {
+          "width": 273.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 273.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -865.5459,
+          "y": 2.8,
+          "z": 390.7343
+        },
+        "dimensions": {
+          "width": 168.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 168.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -865.5459,
+          "y": 2.8,
+          "z": 398.7343
+        },
+        "dimensions": {
+          "width": 168.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 168.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -808.5459,
+          "y": 2.8,
+          "z": 540.7343
+        },
+        "dimensions": {
+          "width": 54.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 54.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -808.5459,
+          "y": 2.8,
+          "z": 548.7343
+        },
+        "dimensions": {
+          "width": 54.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 54.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -773.5459,
+          "y": 2.8,
+          "z": 443.7343
+        },
+        "dimensions": {
+          "width": 194.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 194.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -781.5459,
+          "y": 2.8,
+          "z": 469.7343
+        },
+        "dimensions": {
+          "width": 142.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 142.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -653.5459,
+          "y": 2.8,
+          "z": 443.7343
+        },
+        "dimensions": {
+          "width": 194.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 194.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -652.0459,
+          "y": 2.8,
+          "z": 338.7343
+        },
+        "dimensions": {
+          "width": 13.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 13.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -656.0459,
+          "y": 2.8,
+          "z": 346.7343
+        },
+        "dimensions": {
+          "width": 5.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 5.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -744.0459,
+          "y": 2.8,
+          "z": 346.7343
+        },
+        "dimensions": {
+          "width": 59.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 59.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -754.0459,
+          "y": 2.8,
+          "z": 338.7343
+        },
+        "dimensions": {
+          "width": 79.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 79.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -781.5459,
+          "y": 2.8,
+          "z": 368.7343
+        },
+        "dimensions": {
+          "width": 44.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 44.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -787.5459,
+          "y": 2.8,
+          "z": 346.7343
+        },
+        "dimensions": {
+          "width": 12.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 12.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -713.5459,
+          "y": 2.8,
+          "z": 540.7343
+        },
+        "dimensions": {
+          "width": 120.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 120.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -713.5459,
+          "y": 2.8,
+          "z": 548.7343
+        },
+        "dimensions": {
+          "width": 120.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 120.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -773.5459,
+          "y": 2.8,
+          "z": 552.2343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -781.5459,
+          "y": 2.8,
+          "z": 552.2343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -957.5459,
+          "y": 2.8,
+          "z": 451.2343
+        },
+        "dimensions": {
+          "width": 209.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 209.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -949.5459,
+          "y": 2.8,
+          "z": 469.7343
+        },
+        "dimensions": {
+          "width": 142.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 142.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -883.0459,
+          "y": 2.8,
+          "z": 250.7343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -950.0459,
+          "y": 2.8,
+          "z": 250.7343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -952.0459,
+          "y": 2.8,
+          "z": 258.7343
+        },
+        "dimensions": {
+          "width": 11.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 11.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -963.0459,
+          "y": 2.8,
+          "z": 258.7343
+        },
+        "dimensions": {
+          "width": 11.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 11.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -965.0459,
+          "y": 2.8,
+          "z": 250.7343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -949.5459,
+          "y": 2.8,
+          "z": 368.7343
+        },
+        "dimensions": {
+          "width": 44.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 44.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -961.0459,
+          "y": 2.8,
+          "z": 346.7343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -959.0459,
+          "y": 2.8,
+          "z": 338.7343
+        },
+        "dimensions": {
+          "width": 11.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 11.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -943.5459,
+          "y": 2.8,
+          "z": 346.7343
+        },
+        "dimensions": {
+          "width": 12.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 12.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -945.5459,
+          "y": 2.8,
+          "z": 338.7343
+        },
+        "dimensions": {
+          "width": 16.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 16.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -922.5459,
+          "y": 2.8,
+          "z": 540.7343
+        },
+        "dimensions": {
+          "width": 54.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 54.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -922.5459,
+          "y": 2.8,
+          "z": 548.7343
+        },
+        "dimensions": {
+          "width": 54.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 54.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -949.5459,
+          "y": 2.8,
+          "z": 552.2343
+        },
+        "dimensions": {
+          "width": 7.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 7.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -865.5459,
+          "y": 2.8,
+          "z": 682.7343
+        },
+        "dimensions": {
+          "width": 168.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 168.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -659.5459,
+          "y": 2.8,
+          "z": 682.7343
+        },
+        "dimensions": {
+          "width": 12.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 12.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -767.5459,
+          "y": 2.8,
+          "z": 682.7343
+        },
+        "dimensions": {
+          "width": 12.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 12.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1285.5459,
+          "y": 2.8,
+          "z": 514.7343
+        },
+        "dimensions": {
+          "width": 336.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 336.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1251.5459,
+          "y": 2.8,
+          "z": 258.7343
+        },
+        "dimensions": {
+          "width": 68.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 68.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1251.5459,
+          "y": 2.8,
+          "z": 250.7343
+        },
+        "dimensions": {
+          "width": 68.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 68.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1188.5459,
+          "y": 2.8,
+          "z": 338.7343
+        },
+        "dimensions": {
+          "width": 194.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 194.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1124.5459,
+          "y": 2.8,
+          "z": 258.7343
+        },
+        "dimensions": {
+          "width": 66.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 66.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1043.5459,
+          "y": 2.8,
+          "z": 332.7343
+        },
+        "dimensions": {
+          "width": 12.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 12.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1035.5459,
+          "y": 2.8,
+          "z": 332.7343
+        },
+        "dimensions": {
+          "width": 12.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 12.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1091.5459,
+          "y": 2.8,
+          "z": 298.7343
+        },
+        "dimensions": {
+          "width": 80.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 80.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1083.5459,
+          "y": 2.8,
+          "z": 298.7343
+        },
+        "dimensions": {
+          "width": 80.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 80.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1035.5459,
+          "y": 2.8,
+          "z": 264.7343
+        },
+        "dimensions": {
+          "width": 12.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 12.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1063.5459,
+          "y": 2.8,
+          "z": 258.7343
+        },
+        "dimensions": {
+          "width": 40.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 40.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1043.5459,
+          "y": 2.8,
+          "z": 264.7343
+        },
+        "dimensions": {
+          "width": 12.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 12.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1063.5459,
+          "y": 2.8,
+          "z": 338.7343
+        },
+        "dimensions": {
+          "width": 40.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 40.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1285.5459,
+          "y": 2.8,
+          "z": 298.7343
+        },
+        "dimensions": {
+          "width": 80.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 80.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1239.5459,
+          "y": 2.8,
+          "z": 682.7343
+        },
+        "dimensions": {
+          "width": 92.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 92.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1245.5459,
+          "y": 2.8,
+          "z": 694.7343
+        },
+        "dimensions": {
+          "width": 104.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 104.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 94.4541,
+          "y": 2.8,
+          "z": 334.7343
+        },
+        "dimensions": {
+          "width": 720.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 720.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -147.5459,
+          "y": 2.8,
+          "z": 694.7343
+        },
+        "dimensions": {
+          "width": 484.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 484.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 20.4541,
+          "y": 2.8,
+          "z": -425.2657
+        },
+        "dimensions": {
+          "width": 16.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 16.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 49.4541,
+          "y": 2.8,
+          "z": -417.2657
+        },
+        "dimensions": {
+          "width": 58.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 58.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 78.4541,
+          "y": 2.8,
+          "z": -169.2657
+        },
+        "dimensions": {
+          "width": 496.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 496.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1179.5459,
+          "y": 2.8,
+          "z": 694.7343
+        },
+        "dimensions": {
+          "width": 236.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 236.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1131.5459,
+          "y": 2.8,
+          "z": -25.2657
+        },
+        "dimensions": {
+          "width": 332.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 332.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -815.5459,
+          "y": 2.8,
+          "z": -73.2657
+        },
+        "dimensions": {
+          "width": 300.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 300.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -523.5459,
+          "y": 2.8,
+          "z": 78.7343
+        },
+        "dimensions": {
+          "width": 172.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 172.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -171.5459,
+          "y": 2.8,
+          "z": -433.2657
+        },
+        "dimensions": {
+          "width": 532.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 532.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 94.4541,
+          "y": 2.8,
+          "z": -229.2657
+        },
+        "dimensions": {
+          "width": 408.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 408.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -523.5459,
+          "y": 2.8,
+          "z": -25.2657
+        },
+        "dimensions": {
+          "width": 172.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 172.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -8.0459,
+          "y": 2.8,
+          "z": 78.7343
+        },
+        "dimensions": {
+          "width": 181.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 181.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -8.0459,
+          "y": 2.8,
+          "z": 90.7343
+        },
+        "dimensions": {
+          "width": 181.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 181.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -171.5459,
+          "y": 2.8,
+          "z": 94.7343
+        },
+        "dimensions": {
+          "width": 500.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 500.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -171.5459,
+          "y": 2.8,
+          "z": 78.7343
+        },
+        "dimensions": {
+          "width": 500.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 500.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 78.4541,
+          "y": 2.8,
+          "z": 386.7343
+        },
+        "dimensions": {
+          "width": 584.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 584.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -163.5459,
+          "y": 2.8,
+          "z": 678.7343
+        },
+        "dimensions": {
+          "width": 484.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 484.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -421.5459,
+          "y": 2.8,
+          "z": -169.2657
+        },
+        "dimensions": {
+          "width": 496.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 496.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -392.5459,
+          "y": 2.8,
+          "z": -417.2657
+        },
+        "dimensions": {
+          "width": 58.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 58.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -363.5459,
+          "y": 2.8,
+          "z": -425.2657
+        },
+        "dimensions": {
+          "width": 16.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 16.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -677.5459,
+          "y": 2.8,
+          "z": 208.7343
+        },
+        "dimensions": {
+          "width": 84.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 84.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -669.5459,
+          "y": 2.8,
+          "z": -7.2657
+        },
+        "dimensions": {
+          "width": 12.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 12.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 94.4541,
+          "y": 2.8,
+          "z": 644.7343
+        },
+        "dimensions": {
+          "width": 100.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 100.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -782.0459,
+          "y": 2.8,
+          "z": 250.7343
+        },
+        "dimensions": {
+          "width": 209.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 209.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -645.5459,
+          "y": 2.8,
+          "z": 250.7343
+        },
+        "dimensions": {
+          "width": 48.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 48.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -645.5459,
+          "y": 2.8,
+          "z": 186.7343
+        },
+        "dimensions": {
+          "width": 48.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 48.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -645.5459,
+          "y": 2.8,
+          "z": 178.7343
+        },
+        "dimensions": {
+          "width": 48.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 48.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -669.5459,
+          "y": 2.8,
+          "z": 172.7343
+        },
+        "dimensions": {
+          "width": 12.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 12.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -621.5459,
+          "y": 2.8,
+          "z": 190.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -617.5459,
+          "y": 2.8,
+          "z": 242.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -617.5459,
+          "y": 2.8,
+          "z": 194.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -621.5459,
+          "y": 2.8,
+          "z": 246.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -613.5459,
+          "y": 2.8,
+          "z": 142.7343
+        },
+        "dimensions": {
+          "width": 104.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 104.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -673.5459,
+          "y": 2.8,
+          "z": 166.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -725.5459,
+          "y": 2.8,
+          "z": 694.7343
+        },
+        "dimensions": {
+          "width": 672.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 672.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -843.5459,
+          "y": 2.8,
+          "z": 678.7343
+        },
+        "dimensions": {
+          "width": 876.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 876.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1281.5459,
+          "y": 2.8,
+          "z": 334.7343
+        },
+        "dimensions": {
+          "width": 688.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 688.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -1115.5459,
+          "y": 2.8,
+          "z": -9.2657
+        },
+        "dimensions": {
+          "width": 332.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 332.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -949.5459,
+          "y": 2.8,
+          "z": -33.2657
+        },
+        "dimensions": {
+          "width": 48.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 48.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -815.5459,
+          "y": 2.8,
+          "z": -57.2657
+        },
+        "dimensions": {
+          "width": 268.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 268.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -681.5459,
+          "y": 2.8,
+          "z": -33.2657
+        },
+        "dimensions": {
+          "width": 48.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 48.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -653.5459,
+          "y": 2.8,
+          "z": -9.2657
+        },
+        "dimensions": {
+          "width": 56.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 56.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -625.5459,
+          "y": 2.8,
+          "z": 42.7343
+        },
+        "dimensions": {
+          "width": 104.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 104.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -523.5459,
+          "y": 2.8,
+          "z": 94.7343
+        },
+        "dimensions": {
+          "width": 204.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 204.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 281.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 278.4541,
+          "y": 2.8,
+          "z": 285.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 289.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 286.4541,
+          "y": 2.8,
+          "z": 285.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 446.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 278.4541,
+          "y": 2.8,
+          "z": 450.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 454.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 286.4541,
+          "y": 2.8,
+          "z": 450.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 619.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 278.4541,
+          "y": 2.8,
+          "z": 615.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 611.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 286.4541,
+          "y": 2.8,
+          "z": 615.7343
+        },
+        "dimensions": {
+          "width": 8.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 8.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 294.4541,
+          "y": 2.8,
+          "z": 615.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 603.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 627.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 270.4541,
+          "y": 2.8,
+          "z": 615.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 462.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 438.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 270.4541,
+          "y": 2.8,
+          "z": 450.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 297.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 282.4541,
+          "y": 2.8,
+          "z": 273.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 294.4541,
+          "y": 2.8,
+          "z": 285.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 270.4541,
+          "y": 2.8,
+          "z": 285.7343
+        },
+        "dimensions": {
+          "width": 24.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -1.570796,
+        "layer": "xref-Bishop-Overland-08$0$S-STEM-WALL",
+        "length": 24.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 194.4541,
+          "y": 2.8,
+          "z": 622.7343
+        },
+        "dimensions": {
+          "width": 200.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 200.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 194.4541,
+          "y": 2.8,
+          "z": 278.7343
+        },
+        "dimensions": {
+          "width": 200.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -3.141593,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 200.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -583.5459,
+          "y": 2.8,
+          "z": 620.7343
+        },
+        "dimensions": {
+          "width": 175.3625,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 2.356194,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 175.3625
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -589.2027,
+          "y": 2.8,
+          "z": 626.3911
+        },
+        "dimensions": {
+          "width": 159.3625,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": -0.785398,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 159.3625
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": -645.5459,
+          "y": 2.8,
+          "z": 448.7343
+        },
+        "dimensions": {
+          "width": 220.0,
+          "height": 5.6,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "xref-Bishop-Overland-08$0$A-WALL",
+        "length": 220.0
+      }
+    ],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": -250.9859,
+          "y": 0.0,
+          "z": 65.3671
+        },
+        "dimensions": {
+          "width": 866.1524,
+          "depth": 572.0
+        }
+      }
+    ]
+  },
+  "stats": {
+    "segments_parsed": 1241,
+    "wall_segments": 257,
+    "walls_detected": 226
+  }
+}

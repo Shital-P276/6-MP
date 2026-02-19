@@ -1,0 +1,176 @@
+{
+  "success": true,
+  "processing_time_ms": 109.6,
+  "warnings": [],
+  "source_type": "dxf",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 7,
+      "floor_count": 1,
+      "total_wall_length": 43.0,
+      "paired_walls": 7,
+      "bounds": {
+        "minx": -0.1,
+        "miny": -0.1,
+        "maxx": 12.1,
+        "maxy": 9.799999999999999
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [
+      {
+        "type": "box",
+        "position": {
+          "x": 6.45,
+          "y": 1.5,
+          "z": -0.05
+        },
+        "dimensions": {
+          "width": 6.0,
+          "height": 3.0,
+          "depth": 0.1
+        },
+        "rotation_y": -0.0,
+        "length": 6.0,
+        "thickness": 0.1,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 0.7
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.35,
+          "y": 1.5,
+          "z": 0.05
+        },
+        "dimensions": {
+          "width": 6.0,
+          "height": 3.0,
+          "depth": 0.1
+        },
+        "rotation_y": -0.0,
+        "length": 6.0,
+        "thickness": 0.1,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 0.7
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": 2.95
+        },
+        "dimensions": {
+          "width": 5.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 5.9,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.4,
+          "y": 1.5,
+          "z": 9.3
+        },
+        "dimensions": {
+          "width": 6.8,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -3.141593,
+        "length": 6.8,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": 7.6
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 3.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 12.0,
+          "y": 1.5,
+          "z": 4.85
+        },
+        "dimensions": {
+          "width": 9.7,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "length": 9.7,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 9.4,
+          "y": 1.5,
+          "z": 9.7
+        },
+        "dimensions": {
+          "width": 5.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -3.141593,
+        "length": 5.2,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0
+      }
+    ],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": 6.0,
+          "y": 0.0,
+          "z": 4.85
+        },
+        "dimensions": {
+          "width": 12.2,
+          "depth": 9.9
+        }
+      }
+    ]
+  },
+  "stats": {
+    "wall_segments": 48,
+    "walls_detected": 10,
+    "paired_walls": 10
+  }
+}

@@ -1,0 +1,499 @@
+{
+  "success": true,
+  "processing_time_ms": 34.7,
+  "warnings": [],
+  "source_type": "dxf",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 24,
+      "floor_count": 1,
+      "total_wall_length": 104.3,
+      "paired_walls": 0,
+      "bounds": {
+        "minx": 0.0,
+        "miny": 0.0,
+        "maxx": 10.100000000000001,
+        "maxy": 13.4
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [
+      {
+        "type": "box",
+        "position": {
+          "x": 2.25,
+          "y": 1.5,
+          "z": 0.0
+        },
+        "dimensions": {
+          "width": 4.5,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 0.0,
+        "length": 4.5,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.5,
+          "y": 1.5,
+          "z": 2.05
+        },
+        "dimensions": {
+          "width": 4.1,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 4.1,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 2.25,
+          "y": 1.5,
+          "z": 4.1
+        },
+        "dimensions": {
+          "width": 4.5,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 0.0,
+        "length": 4.5,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": 2.05
+        },
+        "dimensions": {
+          "width": 4.1,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 4.1,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.5,
+          "y": 1.5,
+          "z": 5.55
+        },
+        "dimensions": {
+          "width": 2.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 2.9,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 2.25,
+          "y": 1.5,
+          "z": 7.0
+        },
+        "dimensions": {
+          "width": 4.5,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 0.0,
+        "length": 4.5,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": 5.55
+        },
+        "dimensions": {
+          "width": 2.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 2.9,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.5,
+          "y": 1.5,
+          "z": 8.7
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 3.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 2.25,
+          "y": 1.5,
+          "z": 10.4
+        },
+        "dimensions": {
+          "width": 4.5,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 0.0,
+        "length": 4.5,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": 8.7
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 3.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.5,
+          "y": 1.5,
+          "z": 11.9
+        },
+        "dimensions": {
+          "width": 3.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 3.0,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 2.25,
+          "y": 1.5,
+          "z": 13.4
+        },
+        "dimensions": {
+          "width": 4.5,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 0.0,
+        "length": 4.5,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": 11.9
+        },
+        "dimensions": {
+          "width": 3.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 3.0,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 7.9,
+          "y": 1.5,
+          "z": 4.3
+        },
+        "dimensions": {
+          "width": 4.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 0.0,
+        "length": 4.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.1,
+          "y": 1.5,
+          "z": 6.0
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 3.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 7.9,
+          "y": 1.5,
+          "z": 7.7
+        },
+        "dimensions": {
+          "width": 4.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 0.0,
+        "length": 4.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.7,
+          "y": 1.5,
+          "z": 6.0
+        },
+        "dimensions": {
+          "width": 3.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 3.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.1,
+          "y": 1.5,
+          "z": 9.15
+        },
+        "dimensions": {
+          "width": 2.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 2.9,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 7.9,
+          "y": 1.5,
+          "z": 10.6
+        },
+        "dimensions": {
+          "width": 4.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 0.0,
+        "length": 4.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.7,
+          "y": 1.5,
+          "z": 9.15
+        },
+        "dimensions": {
+          "width": 2.9,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 2.9,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.1,
+          "y": 1.5,
+          "z": 0.0
+        },
+        "dimensions": {
+          "width": 1.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 0.0,
+        "length": 1.2,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.7,
+          "y": 1.5,
+          "z": 6.7
+        },
+        "dimensions": {
+          "width": 13.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 13.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.1,
+          "y": 1.5,
+          "z": 13.4
+        },
+        "dimensions": {
+          "width": 1.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 0.0,
+        "length": 1.2,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.5,
+          "y": 1.5,
+          "z": 6.7
+        },
+        "dimensions": {
+          "width": 13.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": 1.570796,
+        "length": 13.4,
+        "thickness": 0.2,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      }
+    ],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": 5.05,
+          "y": 0.0,
+          "z": 6.7
+        },
+        "dimensions": {
+          "width": 10.1,
+          "depth": 13.4
+        }
+      }
+    ]
+  },
+  "stats": {
+    "wall_segments": 24,
+    "walls_detected": 24,
+    "paired_walls": 0
+  }
+}
