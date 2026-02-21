@@ -35,6 +35,7 @@ class ParsedGeometry:
     door_segments:   list[Segment] = field(default_factory=list)
     window_segments: list[Segment] = field(default_factory=list)
     other_segments:  list[Segment] = field(default_factory=list)
+    ignored_segments:list[Segment] = field(default_factory=list)
     text_labels:     list          = field(default_factory=list)  # [(x, y, text), ...]
     units: str = "unknown"
     bounds: Optional[dict] = None
@@ -44,11 +45,13 @@ class ParsedGeometry:
 
 def classify_layer(name: str) -> str:
     n = name.lower()
+    for kw in ("dim", "dimension", "measure", "cote", "cota", "annot", "axis", "grid"):
+        if kw in n: return "IGNORE"
     for kw in ("wall", "mur", "wand", "cloison"):
         if kw in n: return "WALL"
-    for kw in ("door", "porte", "tür", "tur"):
+    for kw in ("door", "doors", "porte", "puerta", "tür", "tur", "d-"):
         if kw in n: return "DOOR"
-    for kw in ("window", "fenetre", "fenêtre", "fenster"):
+    for kw in ("window", "windows", "fenetre", "fenêtre", "fenster", "win", "glazing"):
         if kw in n: return "WINDOW"
     return "OTHER"
 
@@ -100,6 +103,7 @@ class DXFParser:
             if cat == "WALL":   result.wall_segments.append(seg)
             elif cat == "DOOR": result.door_segments.append(seg)
             elif cat == "WINDOW": result.window_segments.append(seg)
+            elif cat == "IGNORE": result.ignored_segments.append(seg)
             else: result.other_segments.append(seg)
 
         result.bounds = self._bounds(all_segs)
