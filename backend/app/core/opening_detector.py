@@ -24,7 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import math
 
-MAX_WALL_DIST   = 1.5   # max distance from opening to wall centerline (m)
+MAX_WALL_DIST   = 0.9   # hard cap distance from opening to wall centerline (m)
 MIN_DOOR_WIDTH  = 0.5   # smaller arcs are probably noise
 MAX_DOOR_WIDTH  = 1.5
 MIN_WIN_WIDTH   = 0.3
@@ -193,16 +193,19 @@ class OpeningDetector:
         return results
 
     def _find_wall(self, px, py, walls) -> tuple | None:
-        """Find nearest wall to point (px, py). Returns (wall_idx, t, dist)."""
+        """Find nearest plausible wall to point (px, py). Returns (wall_idx, t, dist)."""
         best_wi = None; best_t = 0.0; best_dist = MAX_WALL_DIST
 
         for wi, wall in enumerate(walls):
+            # Adaptive tolerance: opening should be close to a wall centerline.
+            # Keeps false matches lower on noisy plans.
+            local_max = min(MAX_WALL_DIST, max(0.35, wall.thickness * 2.0 + 0.1))
             t, _, _, dist = _project(
                 px, py,
                 wall.start.x, wall.start.y,
                 wall.end.x,   wall.end.y,
             )
-            if dist < best_dist:
+            if dist <= local_max and dist < best_dist:
                 best_dist = dist; best_t = t; best_wi = wi
 
         if best_wi is None:

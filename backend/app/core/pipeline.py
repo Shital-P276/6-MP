@@ -107,6 +107,10 @@ class ProcessingPipeline:
                                       processing_time_ms=(time.perf_counter()-t0)*1000)
 
             # ── Fallback: no WALL layer ──────────────────────────────────────
+            ignored_count = len(getattr(geometry, "ignored_segments", []))
+            if ignored_count:
+                warnings.append(f"Ignored {ignored_count} likely annotation/dimension segments.")
+
             if not geometry.wall_segments:
                 all_other = (geometry.door_segments + geometry.window_segments
                              + geometry.other_segments)
@@ -128,6 +132,7 @@ class ProcessingPipeline:
                 auto_scale=self.auto_scale,
                 default_thickness=self.wall_thickness,
                 default_height=self.wall_height,
+                is_raster=(source_type in {"raster", "pdf"}),
             )
             walls = detector.detect(geometry)
             applied_scale = detector.applied_scale
@@ -196,6 +201,13 @@ class ProcessingPipeline:
                 hough_max_gap=self.hough_max_gap,
             )
             geo = parser.parse(filepath)
+            meta = getattr(geo, "metadata_extra", {}) if geo else {}
+            filtered_non_wall = int(meta.get("filtered_non_wall_lines", 0)) if meta else 0
+            if filtered_non_wall > 0:
+                warnings.append(
+                    f"Raster cleanup removed {filtered_non_wall} likely measurement/annotation lines."
+                )
+
             if not geo.wall_segments:
                 warnings.append(
                     "No lines detected in image. Try lowering hough_threshold or hough_min_length."
