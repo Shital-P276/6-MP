@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 import math, json
 from .wall_detector import Wall
 from .opening_detector import Opening, split_wall_at_openings
+from .floorplan_model import FloorPlan
 
 SILL_HEIGHT   = 0.9   # window sill height (m)
 WIN_HEIGHT    = 1.2   # window opening height (m)
@@ -218,6 +219,29 @@ def room_to_label(room, wall_height: float = 3.0):
 # ── Main builder ──────────────────────────────────────────────────────────────
 
 class GeometryBuilder:
+
+    def build_from_floorplan(self, floorplan: FloorPlan, wall_height: float = 3.0):
+        """Renderer stage: consume FloorPlan only (no image detection in renderer)."""
+        return self.build(
+            floorplan.walls,
+            bounds=floorplan.bounds,
+            rooms=floorplan.rooms,
+            openings=floorplan.openings,
+            wall_height=wall_height,
+        )
+
+    def drawWall(self, model: BuildingModel, wall_box: dict):
+        model.walls.append(wall_box)
+
+    def drawDoor(self, model: BuildingModel, door_obj: dict):
+        model.doors.append(door_obj)
+
+    def drawWindow(self, model: BuildingModel, window_obj: dict):
+        model.windows.append(window_obj)
+
+    def drawRoom(self, model: BuildingModel, room_obj: dict):
+        model.rooms.append(room_obj)
+
     def build(self, walls, bounds=None, rooms=None,
               openings=None, wall_height: float = 3.0):
 
@@ -232,16 +256,19 @@ class GeometryBuilder:
         for wi, wall in enumerate(walls):
             wall_openings = openings_by_wall.get(wi, [])
             wall_boxes, door_dicts, win_dicts = wall_to_boxes(wall, wall_openings)
-            model.walls.extend(wall_boxes)
-            model.doors.extend(door_dicts)
-            model.windows.extend(win_dicts)
+            for wb in wall_boxes:
+                self.drawWall(model, wb)
+            for d in door_dicts:
+                self.drawDoor(model, d)
+            for w in win_dicts:
+                self.drawWindow(model, w)
 
         if bounds:
             model.floors.append(self._floor(bounds))
 
         if rooms:
             for r in rooms:
-                model.rooms.append(room_to_label(r, wall_height))
+                self.drawRoom(model, room_to_label(r, wall_height))
 
         total_wall_len = sum(w.get("length", w["dimensions"]["width"])
                              for w in model.walls)

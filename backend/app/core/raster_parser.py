@@ -3,10 +3,13 @@ Raster Parser — extracts wall geometry from PNG/JPG/PDF floor plan images.
 
 Pipeline:
   1. Load image (or convert PDF page to image)
-  2. Preprocess: grayscale → denoise → binarize → morphological cleanup
-  3. Edge detection (Canny)
-  4. Probabilistic Hough Transform → line segments
-  5. Convert pixel lines → metric segments
+  2. Grayscale conversion
+  3. Gaussian blur denoising
+  4. Adaptive thresholding
+  5. Canny edge detection
+  6. Edge-map cleanup
+  7. Probabilistic Hough Transform → line segments
+  8. Convert pixel lines → metric segments
 
 Requirements: opencv-python, numpy
 Optional: pdf2image + poppler (for PDF support)
@@ -14,7 +17,6 @@ Optional: pdf2image + poppler (for PDF support)
 
 from __future__ import annotations
 from pathlib import Path
-from typing import Optional
 import math
 
 from .dxf_parser import Segment, Point2D, ParsedGeometry
@@ -37,12 +39,18 @@ except ImportError:
 # Defaults (all tunable via constructor)
 # ─────────────────────────────────────────────────────────────────────────────
 
-DEFAULT_PIXELS_PER_METER = 100   # rough default; user should calibrate
-CANNY_LOW    = 50
-CANNY_HIGH   = 150
-HOUGH_RHO    = 1
-HOUGH_THETA  = math.pi / 180
-MIN_PX_LEN   = 20               # ignore segments shorter than this (pixels)
+DEFAULT_PIXELS_PER_METER = 100
+CANNY_LOW = 50
+CANNY_HIGH = 150
+HOUGH_RHO = 1
+HOUGH_THETA = math.pi / 180
+MIN_PX_LEN = 20
+
+# Preprocess constants for clean structural edges
+GAUSSIAN_KERNEL = (5, 5)
+ADAPTIVE_BLOCK_SIZE = 31
+ADAPTIVE_C = 5
+EDGE_CLEAN_KERNEL = (3, 3)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -53,12 +61,14 @@ def _require_cv2():
     if not CV2_AVAILABLE:
         raise ImportError("opencv-python is required for image parsing. Run: pip install opencv-python")
 
+
 def _load_cv2(filepath: str) -> "np.ndarray":
     _require_cv2()
     img = cv2.imread(filepath)
     if img is None:
         raise ValueError(f"Could not read image file: {filepath}")
     return img
+
 
 def _pdf_to_cv2(filepath: str, dpi: int = 200) -> "np.ndarray":
     if not PDF2IMAGE_AVAILABLE:
@@ -79,18 +89,33 @@ def _pdf_to_cv2(filepath: str, dpi: int = 200) -> "np.ndarray":
 # Preprocessing
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _preprocess(img: "np.ndarray") -> "np.ndarray":
+def _preprocess_to_edges(img: "np.ndarray") -> "np.ndarray":
     """
-    Convert to binary image optimized for Hough line detection.
-    Works for both dark-lines-on-white and white-lines-on-dark.
+    Build a clean edge map suitable for structural line detection.
+
+    Steps:
+      grayscale -> gaussian blur -> adaptive threshold -> canny -> edge cleanup
     """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if len(img.shape) == 3 else img
-    denoised = cv2.fastNlMeansDenoising(gray, h=10)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(denoised)
-    _, binary = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-    return cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+
+    blurred = cv2.GaussianBlur(gray, GAUSSIAN_KERNEL, 0)
+
+    # Adaptive threshold handles uneven lighting/background in scans.
+    binary = cv2.adaptiveThreshold(
+        blurred,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV,
+        ADAPTIVE_BLOCK_SIZE,
+        ADAPTIVE_C,
+    )
+
+    edges = cv2.Canny(binary, CANNY_LOW, CANNY_HIGH)
+
+    # Light morphological close to connect short broken edge fragments.
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, EDGE_CLEAN_KERNEL)
+    clean_edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=1)
+    return clean_edges
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -98,14 +123,13 @@ def _preprocess(img: "np.ndarray") -> "np.ndarray":
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _hough_lines(
-    binary: "np.ndarray",
+    edge_map: "np.ndarray",
     threshold: int,
     min_length: int,
     max_gap: int,
 ) -> list[tuple[int, int, int, int]]:
-    edges = cv2.Canny(binary, CANNY_LOW, CANNY_HIGH)
     raw = cv2.HoughLinesP(
-        edges,
+        edge_map,
         rho=HOUGH_RHO,
         theta=HOUGH_THETA,
         threshold=threshold,
@@ -126,19 +150,14 @@ def _px_to_segments(
     for x1, y1, x2, y2 in lines:
         if math.hypot(x2 - x1, y2 - y1) < MIN_PX_LEN:
             continue
-        # Flip Y: image Y=0 is top, we want Y=0 at bottom
         segs.append(Segment(
             start=Point2D(x1 / ppm, (img_h - y1) / ppm),
-            end=Point2D(x2 / ppm,   (img_h - y2) / ppm),
+            end=Point2D(x2 / ppm, (img_h - y2) / ppm),
             layer="WALL",
             source_type="HOUGH",
         ))
     return segs
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Main parser class
-# ─────────────────────────────────────────────────────────────────────────────
 
 class RasterParser:
     def __init__(
@@ -155,19 +174,20 @@ class RasterParser:
         self.hough_min_length = hough_min_length
         self.hough_max_gap = hough_max_gap
 
-    def parse(self, filepath: str) -> ParsedGeometry:
+    def _load_image(self, filepath: str) -> "np.ndarray":
         suffix = Path(filepath).suffix.lower()
-
         if suffix == ".pdf":
-            img = _pdf_to_cv2(filepath, dpi=self.pdf_dpi)
-        elif suffix in (".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"):
-            img = _load_cv2(filepath)
-        else:
-            raise ValueError(f"Unsupported raster format: {suffix}")
+            return _pdf_to_cv2(filepath, dpi=self.pdf_dpi)
+        if suffix in (".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"):
+            return _load_cv2(filepath)
+        raise ValueError(f"Unsupported raster format: {suffix}")
 
+    def parse(self, filepath: str) -> ParsedGeometry:
+        img = self._load_image(filepath)
         h, w = img.shape[:2]
-        binary = _preprocess(img)
-        lines = _hough_lines(binary, self.hough_threshold, self.hough_min_length, self.hough_max_gap)
+
+        edge_map = _preprocess_to_edges(img)
+        lines = _hough_lines(edge_map, self.hough_threshold, self.hough_min_length, self.hough_max_gap)
         segments = _px_to_segments(lines, self.pixels_per_meter, h)
 
         result = ParsedGeometry()
@@ -187,18 +207,20 @@ class RasterParser:
             "image_size": f"{w}x{h}px",
             "lines_detected": len(lines),
             "pixels_per_meter": self.pixels_per_meter,
+            "edge_pixels": int((edge_map > 0).sum()),
         }
 
         return result
 
     def save_debug_image(self, filepath: str, output_path: str = "debug_lines.png") -> str:
-        """Render detected lines onto original image and save. Useful for tuning."""
-        suffix = Path(filepath).suffix.lower()
-        img = _pdf_to_cv2(filepath, self.pdf_dpi) if suffix == ".pdf" else _load_cv2(filepath)
-        binary = _preprocess(img)
-        lines = _hough_lines(binary, self.hough_threshold, self.hough_min_length, self.hough_max_gap)
-        vis = img.copy()
+        """Render detected lines on top of an edge-map backdrop for tuning."""
+        img = self._load_image(filepath)
+        edge_map = _preprocess_to_edges(img)
+        lines = _hough_lines(edge_map, self.hough_threshold, self.hough_min_length, self.hough_max_gap)
+
+        vis = cv2.cvtColor(edge_map, cv2.COLOR_GRAY2BGR)
         for x1, y1, x2, y2 in lines:
             cv2.line(vis, (x1, y1), (x2, y2), (0, 200, 50), 2)
+
         cv2.imwrite(output_path, vis)
         return output_path

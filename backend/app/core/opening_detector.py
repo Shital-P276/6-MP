@@ -60,14 +60,16 @@ def _project(px, py, ax, ay, bx, by):
 
 class OpeningDetector:
     def detect(self, geometry, walls) -> list[Opening]:
+        """Backward-compatible aggregate detection (doors + windows)."""
+        return [*self.detect_doors(geometry, walls), *self.detect_windows(geometry, walls)]
+
+    def detect_doors(self, geometry, walls) -> list[Opening]:
         """
         geometry: ParsedGeometry (has door_segments, window_segments)
         walls:    list of Wall objects (from WallDetector)
         Returns:  list of Opening
         """
         openings = []
-
-        # ── Doors ────────────────────────────────────────────────────────────
         door_points = self._extract_door_points(geometry.door_segments)
         for hx, hy, radius in door_points:
             best = self._find_wall(hx, hy, walls)
@@ -86,7 +88,11 @@ class OpeningDetector:
                                   wall.end.x - wall.start.x),
             ))
 
-        # ── Windows ──────────────────────────────────────────────────────────
+        return openings
+
+    def detect_windows(self, geometry, walls) -> list[Opening]:
+        openings = []
+
         win_points = self._extract_window_points(geometry.window_segments)
         for mx, my, width in win_points:
             best = self._find_wall(mx, my, walls)
