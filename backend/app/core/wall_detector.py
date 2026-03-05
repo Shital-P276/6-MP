@@ -41,6 +41,7 @@ HOUGH_THETA = math.pi / 180
 HOUGH_THRESHOLD = 60
 HOUGH_MIN_LENGTH = 30
 HOUGH_MAX_GAP = 10
+DOMINANT_AXIS_TOL_DEG = 12.0
 
 COLLINEAR_PERP_TOL_M = 0.10
 COLLINEAR_GAP_TOL_M = 0.20
@@ -251,6 +252,59 @@ def _merge_collinear_segments(segments: list[Wall], perp_tol_m: float, gap_tol_m
     return merged
 
 
+def _line_angle_deg(line: tuple[int, int, int, int]) -> float:
+    x1, y1, x2, y2 = line
+    return math.degrees(math.atan2(y2 - y1, x2 - x1)) % 180
+
+
+def _line_len_px(line: tuple[int, int, int, int]) -> float:
+    x1, y1, x2, y2 = line
+    return math.hypot(x2 - x1, y2 - y1)
+
+
+def _angular_distance_deg(a: float, b: float) -> float:
+    d = abs(a - b) % 180
+    return min(d, 180 - d)
+
+
+def _find_dominant_axes(lines: list[tuple[int, int, int, int]]) -> tuple[float, float] | None:
+    """Estimate main orthogonal wall axes from Hough lines.
+
+    Many floor plans contain diagonal annotations (door arcs, dimensions, text)
+    that can dominate raw Hough output. We select the strongest angle by
+    length-weighted voting and derive its orthogonal partner.
+    """
+    if not lines:
+        return None
+
+    hist = [0.0] * 180
+    for line in lines:
+        angle = int(round(_line_angle_deg(line))) % 180
+        hist[angle] += _line_len_px(line)
+
+    dominant = float(max(range(180), key=lambda i: hist[i]))
+    return dominant, (dominant + 90.0) % 180.0
+
+
+def _filter_to_dominant_axes(
+    lines: list[tuple[int, int, int, int]],
+    tolerance_deg: float = DOMINANT_AXIS_TOL_DEG,
+) -> list[tuple[int, int, int, int]]:
+    axes = _find_dominant_axes(lines)
+    if axes is None:
+        return lines
+
+    a0, a1 = axes
+    filtered = [
+        line for line in lines
+        if min(_angular_distance_deg(_line_angle_deg(line), a0),
+               _angular_distance_deg(_line_angle_deg(line), a1)) <= tolerance_deg
+    ]
+
+    # Fallback safety: if the filter is too aggressive, keep original lines.
+    return filtered if len(filtered) >= max(4, int(0.3 * len(lines))) else lines
+
+
 class WallDetector:
     def __init__(
         self,
@@ -307,10 +361,12 @@ class WallDetector:
         if raw is None:
             return []
 
+        raw_lines = [tuple(map(int, l[0])) for l in raw]
+        candidate_lines = _filter_to_dominant_axes(raw_lines)
+
         h = img.shape[0]
         walls = []
-        for l in raw:
-            x1, y1, x2, y2 = map(int, l[0])
+        for x1, y1, x2, y2 in candidate_lines:
             thickness_px = _estimate_line_thickness_px((x1, y1, x2, y2), dist_map)
             thickness_m = max(thickness_px / max(self.pixels_per_meter, 1e-6), 0.0)
 
@@ -385,4 +441,3 @@ class WallDetector:
     def detect_into(self, floorplan, geometry: ParsedGeometry, image_path: str | None = None):
         floorplan.walls = self.detect(geometry, image_path=image_path)
         return floorplan
-
