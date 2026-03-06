@@ -17,10 +17,96 @@ from dataclasses import dataclass, field
 import math, json
 from .wall_detector import Wall
 from .opening_detector import Opening, split_wall_at_openings
+from .dxf_parser import Point2D
 
 SILL_HEIGHT   = 0.9   # window sill height (m)
 WIN_HEIGHT    = 1.2   # window opening height (m)
 DOOR_LEAF_T   = 0.05  # door leaf thickness (m)
+
+# Corner tolerance: endpoint must be within this perp distance to be considered a junction.
+# Uses sum-of-half-thicknesses + raster drift allowance (set in _compute_wall_extensions).
+CORNER_RASTER_DRIFT = 0.10   # metres of endpoint drift to tolerate for raster walls
+
+
+# ── Corner extension ──────────────────────────────────────────────────────────
+
+def _compute_wall_extensions(walls):
+    """
+    For each pair of perpendicular walls meeting at a junction, extend the wall
+    endpoints outward so their FACES meet exactly (no protruding half-cut edges).
+
+    L-corner  (endpoint near another wall's endpoint):
+        Both walls extend by the other wall's thickness / 2.
+
+    T-junction (endpoint near the MIDDLE of another wall):
+        Only the incoming (stub) wall extends by the through-wall's thickness / 2.
+        The through-wall is NOT modified — it passes through unbroken.
+
+    Returns a list of (ext_start_m, ext_end_m) per wall, where each value is
+    the extra metres to add at that end in the wall's own travel direction.
+
+    Key correctness notes vs old _compute_corner_trims():
+    - Extends OUTWARD (longer walls) rather than trimming INWARD (shorter walls)
+      → filling the corner void, not creating a gap
+    - Tolerance = wa.thickness/2 + wb.thickness/2 + CORNER_RASTER_DRIFT
+      → adapts to actual measured thicknesses, handles raster endpoint drift
+    - T-junction logic: only stub extends, through-wall is untouched
+      → old approach modified both which cut through-walls short
+    """
+    n = len(walls)
+    ext_start = [0.0] * n
+    ext_end   = [0.0] * n
+
+    for i, wa in enumerate(walls):
+        La = wa.length
+        if La < 1e-6:
+            continue
+        dxa = (wa.end.x - wa.start.x) / La
+        dya = (wa.end.y - wa.start.y) / La
+
+        for j, wb in enumerate(walls):
+            if i == j:
+                continue
+
+            # Only process walls that are roughly perpendicular (75°–105°)
+            ang = abs(wa.angle_deg - wb.angle_deg) % 180
+            if not (75.0 <= ang <= 105.0):
+                continue
+
+            # Tolerance: sum of half-thicknesses + raster drift
+            tol = wa.thickness / 2.0 + wb.thickness / 2.0 + CORNER_RASTER_DRIFT
+
+            # Check each endpoint of wb against wa's centerline
+            for wb_ep, ext_list_j in (('start', ext_start), ('end', ext_end)):
+                pt = wb.start if wb_ep == 'start' else wb.end
+
+                # Project pt onto wa's infinite centerline
+                t_raw = ((pt.x - wa.start.x) * dxa + (pt.y - wa.start.y) * dya) / La
+                proj_x = wa.start.x + t_raw * La * dxa
+                proj_y = wa.start.y + t_raw * La * dya
+                perp = math.hypot(pt.x - proj_x, pt.y - proj_y)
+
+                if perp > tol:
+                    continue   # too far off-axis — not a real junction
+
+                t_c = max(0.0, min(1.0, t_raw))
+
+                if t_c < 0.08:
+                    # Junction near wa's START → L-corner at wa-start / wb-end
+                    ext_list_j[j] = max(ext_list_j[j], wa.thickness / 2.0)
+                    ext_start[i]  = max(ext_start[i],  wb.thickness / 2.0)
+
+                elif t_c > 0.92:
+                    # Junction near wa's END → L-corner at wa-end / wb-end
+                    ext_list_j[j] = max(ext_list_j[j], wa.thickness / 2.0)
+                    ext_end[i]    = max(ext_end[i],    wb.thickness / 2.0)
+
+                else:
+                    # Junction in the middle of wa → T-junction
+                    # Only the incoming stub (wb) extends; wa passes through unbroken
+                    ext_list_j[j] = max(ext_list_j[j], wa.thickness / 2.0)
+
+    return list(zip(ext_start, ext_end))
 
 
 @dataclass
@@ -260,9 +346,28 @@ class GeometryBuilder:
             for op in openings:
                 openings_by_wall.setdefault(op.wall_idx, []).append(op)
 
+        # Compute corner extensions so wall faces meet cleanly at junctions
+        extensions = _compute_wall_extensions(walls) if walls else []
+
         for wi, wall in enumerate(walls):
+            # Apply endpoint extensions for this wall
+            ext_s, ext_e = extensions[wi] if extensions else (0.0, 0.0)
+            w = wall
+            if (ext_s > 0.0 or ext_e > 0.0) and wall.length > ext_s + ext_e + 0.05:
+                L  = wall.length
+                dx = (wall.end.x - wall.start.x) / L
+                dy = (wall.end.y - wall.start.y) / L
+                new_start = Point2D(wall.start.x - dx * ext_s,
+                                    wall.start.y - dy * ext_s)
+                new_end   = Point2D(wall.end.x   + dx * ext_e,
+                                    wall.end.y   + dy * ext_e)
+                w = Wall(start=new_start, end=new_end,
+                         thickness=wall.thickness, height=wall.height,
+                         layer=wall.layer, paired=wall.paired,
+                         confidence=wall.confidence)
+
             wall_openings = openings_by_wall.get(wi, [])
-            wall_boxes, door_dicts, win_dicts = wall_to_boxes(wall, wall_openings)
+            wall_boxes, door_dicts, win_dicts = wall_to_boxes(w, wall_openings)
             model.walls.extend(wall_boxes)
             model.doors.extend(door_dicts)
             model.windows.extend(win_dicts)

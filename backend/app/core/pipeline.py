@@ -17,6 +17,12 @@ try:
 except ImportError:
     RASTER_OK = False
 
+try:
+    from .simpledraw_parser import SimpleDrawParser, is_simpledraw_format
+    SIMPLEDRAW_OK = True
+except ImportError:
+    SIMPLEDRAW_OK = False
+
 RASTER_FORMATS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 VECTOR_FORMATS  = {".dxf"}
 PDF_FORMATS     = {".pdf"}
@@ -101,8 +107,22 @@ class ProcessingPipeline:
                 source_type = "dxf"
                 geometry = self._parse_dxf(filepath, warnings)
             else:
+                # Auto-detect whether this is a SimpleDraw-style (black-on-white)
+                # or the standard CAD colour-coded format
                 source_type = "pdf" if suffix in PDF_FORMATS else "raster"
-                geometry, raster_parser = self._parse_raster(filepath, warnings)
+                if SIMPLEDRAW_OK and suffix not in PDF_FORMATS:
+                    try:
+                        import cv2 as _cv2
+                        _img = _cv2.imread(filepath)
+                        if _img is not None and is_simpledraw_format(_img):
+                            source_type = "simpledraw"
+                            geometry, raster_parser = self._parse_simpledraw(filepath, warnings)
+                        else:
+                            geometry, raster_parser = self._parse_raster(filepath, warnings)
+                    except Exception:
+                        geometry, raster_parser = self._parse_raster(filepath, warnings)
+                else:
+                    geometry, raster_parser = self._parse_raster(filepath, warnings)
 
             if geometry is None:
                 return PipelineResult(
@@ -130,11 +150,14 @@ class ProcessingPipeline:
             if raster_parser is not None:
                 meta = geometry.metadata_extra
                 ppm  = meta.get("pixels_per_meter", 65)
-                # Wall thickness from image: we measured ~20px at 65ppm ≈ 0.31m
-                # Use a reasonable architectural default: 0.25m exterior, 0.1m interior
-                # For raster we use the ppm-derived thickness
-                detected_wall_thick = round(20.0 / max(ppm, 1), 3)
-                detected_wall_thick = max(0.1, min(0.5, detected_wall_thick))
+                fmt  = meta.get("format", "cad")
+                if fmt == "simpledraw":
+                    detected_wall_thick = 0.2
+                else:
+                    # CAD: typical wall is ~20px thick at detected ppm
+                    # Clamp to sensible residential range
+                    raw_thick = 20.0 / max(ppm, 1)
+                    detected_wall_thick = max(0.08, min(0.40, raw_thick))
 
             detector = WallDetector(
                 scale=self.scale,
@@ -218,7 +241,7 @@ class ProcessingPipeline:
             meta = geo.metadata_extra
             ppm  = meta.get("pixels_per_meter", 65)
             warnings.append(
-                f"Raster v5: {meta['total_walls']} walls, "
+                f"{meta.get('source', 'raster')}: {meta['total_walls']} walls, "
                 f"{meta['doors_detected']} doors, "
                 f"{meta['windows_detected']} windows, "
                 f"{meta['rooms_detected']} rooms detected "
@@ -231,70 +254,67 @@ class ProcessingPipeline:
             warnings.append(f"Raster parse error: {e}\n{traceback.format_exc()}")
             return None, None
 
+    def _parse_simpledraw(self, filepath, warnings):
+        """Parse a SimpleDraw-style black-on-white architectural drawing."""
+        try:
+            parser = SimpleDrawParser(
+                pixels_per_meter=self.pixels_per_meter,
+                pdf_dpi=self.pdf_dpi,
+            )
+            geo  = parser.parse(filepath)
+            meta = geo.metadata_extra
+            warnings.append(
+                f"SimpleDraw format detected: {meta['outer_walls']} outer walls, "
+                f"{meta['inner_walls']} inner walls, "
+                f"{meta['doors_detected']} doors, "
+                f"{meta['windows_detected']} windows at "
+                f"{meta['pixels_per_meter']:.0f} px/m ({meta['ppm_source']})."
+            )
+            return geo, parser
+        except Exception as e:
+            import traceback
+            warnings.append(f"SimpleDraw parse error: {e}\n{traceback.format_exc()}")
+            return None, None
+
     def _build_raster_openings(self, img_openings, walls, fp_h, ppm):
         """
         Convert pixel-space opening dicts from the raster parser into Opening objects.
 
-        Normal (intra-segment) openings: matched to nearest wall, width clipped.
-        Inter-segment openings (t_center == -1.0): placed between two collinear wall
-          stubs. These are returned with wall_idx=-1 so geometry_builder creates a
-          freestanding door/window dict from world coordinates directly.
+        All openings — both intra-segment (gap inside a wall) and inter-segment
+        (gap between two collinear stubs) — are matched to the nearest wall via
+        perpendicular projection.  After Hough+merge the two stubs are typically
+        unified into one wall, so the projection succeeds for both cases.
+
+        Only if no wall projects within MAX_MATCH_M does an opening fall back to
+        freestanding (wall_idx=-1), which geometry_builder renders without a void.
         """
         from .opening_detector import Opening, _project
+
+        MAX_MATCH_M = 1.5   # perpendicular distance tolerance for wall matching
 
         openings = []
         world_h  = fp_h / ppm
 
         for op in img_openings:
             ox = op["x"]
-            oy = world_h - op["y"]   # Y-flip to match wall coords
+            oy = world_h - op["y"]   # Y-flip: image y=0 is top, world y=0 is bottom
 
-            is_inter = op.get("t_center", 0) == -1.0
+            # Try projection onto every wall — same logic for intra and inter-segment.
+            best_wi, best_t, best_dist = None, 0.0, MAX_MATCH_M
 
-            if is_inter:
-                # ── Inter-segment: freestanding opening between two collinear stubs ──
-                # Find the wall angle (use any collinear wall nearby)
-                orient = op.get("orient", "H")
-                tol    = 0.20   # metres
-                angle  = 0.0
-                for wall in walls:
-                    on_line = (
-                        (orient == 'H' and abs(wall.start.y - oy) < tol)
-                        or (orient == 'V' and abs(wall.start.x - ox) < tol)
-                    )
-                    if on_line:
-                        angle = math.atan2(wall.end.y - wall.start.y,
-                                           wall.end.x - wall.start.x)
-                        break
+            for wi, wall in enumerate(walls):
+                t, _, _, dist = _project(
+                    ox, oy,
+                    wall.start.x, wall.start.y,
+                    wall.end.x,   wall.end.y,
+                )
+                if dist < best_dist:
+                    best_dist = dist
+                    best_t    = t
+                    best_wi   = wi
 
-                openings.append(Opening(
-                    wall_idx   = -1,          # sentinel: freestanding
-                    t_center   = -1.0,
-                    width      = op["width_m"],
-                    kind       = op["kind"],
-                    x=ox, y=oy,
-                    angle      = angle,
-                    swing_side = op.get("swing_side", "right"),
-                ))
-
-            else:
-                # ── Normal intra-segment opening ──────────────────────────────
-                best_wi, best_t, best_dist = None, 0.0, 1.5
-
-                for wi, wall in enumerate(walls):
-                    t, _, _, dist = _project(
-                        ox, oy,
-                        wall.start.x, wall.start.y,
-                        wall.end.x,   wall.end.y,
-                    )
-                    if dist < best_dist:
-                        best_dist = dist
-                        best_t    = t
-                        best_wi   = wi
-
-                if best_wi is None:
-                    continue
-
+            if best_wi is not None:
+                # Matched to a wall — opening will split it and create a void.
                 wall = walls[best_wi]
                 openings.append(Opening(
                     wall_idx   = best_wi,
@@ -302,10 +322,37 @@ class ProcessingPipeline:
                     width      = min(op["width_m"], wall.length * 0.92),
                     kind       = op["kind"],
                     x=ox, y=oy,
-                    angle=math.atan2(
+                    angle      = math.atan2(
                         wall.end.y - wall.start.y,
                         wall.end.x - wall.start.x,
                     ),
+                    swing_side = op.get("swing_side", "right"),
+                ))
+            else:
+                # No wall close enough — render freestanding (door leaf only, no void).
+                orient = op.get("orient", "H")
+                angle  = 0.0 if orient == 'H' else math.pi / 2
+                for wall in walls:
+                    wall_ang  = abs(wall.angle_deg % 180)
+                    is_h_wall = wall_ang < 20 or wall_ang > 160
+                    is_v_wall = 70 < wall_ang < 110
+                    if (orient == 'H' and is_h_wall) or (orient == 'V' and is_v_wall):
+                        mid_x = (wall.start.x + wall.end.x) / 2
+                        mid_y = (wall.start.y + wall.end.y) / 2
+                        d = math.hypot(ox - mid_x, oy - mid_y)
+                        if d < float('inf'):
+                            angle = math.atan2(
+                                wall.end.y - wall.start.y,
+                                wall.end.x - wall.start.x,
+                            )
+                            break
+                openings.append(Opening(
+                    wall_idx   = -1,
+                    t_center   = -1.0,
+                    width      = op["width_m"],
+                    kind       = op["kind"],
+                    x=ox, y=oy,
+                    angle      = angle,
                     swing_side = op.get("swing_side", "right"),
                 ))
 

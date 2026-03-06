@@ -282,7 +282,7 @@ def _detect_border_crop(fp, green_mask_dilated) -> int:
 # ── Step 3 — segmentation ─────────────────────────────────────────────────────
 
 def _segment(fp):
-    """Return (wall_mask, room_mask) with annotation border stripped.
+    """Return (wall_mask, room_mask, border_crop) with annotation border stripped.
     
     The border width is determined dynamically from the green annotation frame
     rather than a fixed constant — this handles floor plans of any size/scale.
@@ -312,7 +312,7 @@ def _segment(fp):
     inner[b2:FH-b2, b2:FW-b2] = 255
     wall_mask = cv2.bitwise_and(wall_mask, inner)
     room_mask = cv2.bitwise_and(room_mask, inner)
-    return wall_mask, room_mask
+    return wall_mask, room_mask, b2
 
 
 # ── Step 4 — skeleton ─────────────────────────────────────────────────────────
@@ -343,8 +343,8 @@ def _snap(x1, y1, x2, y2):
         return mx, min(y1,y2), mx, max(y1,y2), 'V'
     return None
 
-def _merge(lines, orient, FH, FW):
-    border = BORDER_CROP_PX
+def _merge(lines, orient, FH, FW, border_crop=BORDER_CROP_PX):
+    border = border_crop
     lim    = FH if orient == 'H' else FW
     groups: dict[int, list] = {}
     for l in lines:
@@ -454,7 +454,51 @@ def _refine_centerlines(h_walls, v_walls, wall_mask):
     return refined_h, refined_v
 
 
-def _detect_walls(wall_mask):
+def _filter_edge_stubs(h_walls, v_walls, FH, FW, ppm, border_crop=BORDER_CROP_PX):
+    """
+    Remove short wall stubs that are artifacts of the image border annotation
+    (tick marks, frame corners) rather than real walls.
+
+    A stub is suspicious if:
+      1. It is shorter than STUB_MAX_M metres (too short to be a real wall), AND
+      2. It is within STUB_EDGE_PX pixels of any image edge.
+
+    STUB_EDGE_PX is derived from border_crop (the dynamically measured green-frame
+    width) so no values are hardcoded for a specific floor plan.
+    """
+    STUB_MAX_M   = 0.60   # walls shorter than this are candidates for removal
+    STUB_EDGE_PX = border_crop * 2   # tick-mark stubs live within 2x the frame width
+
+    stub_max_px = int(STUB_MAX_M * ppm)
+
+    def near_edge(fixed, a, b, orient):
+        if orient == 'H':
+            # H-wall at y=fixed; near top or bottom edge?
+            return (fixed < STUB_EDGE_PX or fixed > FH - STUB_EDGE_PX or
+                    a < STUB_EDGE_PX or b > FW - STUB_EDGE_PX)
+        else:
+            # V-wall at x=fixed; near left or right edge?
+            return (fixed < STUB_EDGE_PX or fixed > FW - STUB_EDGE_PX or
+                    a < STUB_EDGE_PX or b > FH - STUB_EDGE_PX)
+
+    filtered_h = []
+    for x1, y, x2, _ in h_walls:
+        length_px = x2 - x1
+        if length_px < stub_max_px and near_edge(y, x1, x2, 'H'):
+            continue   # drop phantom edge stub
+        filtered_h.append((x1, y, x2, y))
+
+    filtered_v = []
+    for x, y1, _, y2 in v_walls:
+        length_px = y2 - y1
+        if length_px < stub_max_px and near_edge(x, y1, y2, 'V'):
+            continue   # drop phantom edge stub
+        filtered_v.append((x, y1, x, y2))
+
+    return filtered_h, filtered_v
+
+
+def _detect_walls(wall_mask, border_crop=BORDER_CROP_PX):
     FH, FW = wall_mask.shape
     skel   = _skeleton(wall_mask)
     raw    = cv2.HoughLinesP(skel, 1, math.pi/180,
@@ -464,8 +508,8 @@ def _detect_walls(wall_mask):
     if raw is None:
         return [], []
     axis  = [r for r in (_snap(*l[0]) for l in raw) if r]
-    H     = _dedup(_merge([l for l in axis if l[4]=='H'], 'H', FH, FW), 'H')
-    V     = _dedup(_merge([l for l in axis if l[4]=='V'], 'V', FH, FW), 'V')
+    H     = _dedup(_merge([l for l in axis if l[4]=='H'], 'H', FH, FW, border_crop), 'H')
+    V     = _dedup(_merge([l for l in axis if l[4]=='V'], 'V', FH, FW, border_crop), 'V')
     # Refine approximate centerlines to true wall-body centers
     H, V  = _refine_centerlines(H, V, wall_mask)
     return H, V
@@ -693,7 +737,7 @@ def _find_window_symbols(fp_gray, orient, fixed, a, b, ppm):
     return [(gs, ge, gpx, "window") for gs, ge, gpx in windows]
 
 
-def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm):
+def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None):
     """
     Returns list of opening dicts:
       wall_id, orient, t_start, t_end, t_center, width_m, kind,
@@ -835,6 +879,8 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm):
         v_by_x[x].append((y1, y2, _wid))
         _wid += 1
 
+    DEDUP_RADIUS_PX = max(12, int(ppm * 0.5))   # ~0.5m; adapts to image scale
+
     for y, segs in h_by_y.items():
         segs.sort()
         for i in range(len(segs) - 1):
@@ -845,7 +891,7 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm):
                 continue   # overlapping — already one wall
             # Skip if this gap is already an intra-segment gap somewhere
             gap_mid = (x_left_end + x_right_start) // 2
-            already = any(abs(op["x_px"] - gap_mid) < 10 and abs(op["y_px"] - y) < 10
+            already = any(abs(op["x_px"] - gap_mid) < DEDUP_RADIUS_PX and abs(op["y_px"] - y) < DEDUP_RADIUS_PX
                           for op in openings)
             if already:
                 continue
@@ -874,7 +920,7 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm):
             if y_bot_start <= y_top_end:
                 continue
             gap_mid = (y_top_end + y_bot_start) // 2
-            already = any(abs(op["x_px"] - x) < 10 and abs(op["y_px"] - gap_mid) < 10
+            already = any(abs(op["x_px"] - x) < DEDUP_RADIUS_PX and abs(op["y_px"] - gap_mid) < DEDUP_RADIUS_PX
                           for op in openings)
             if already:
                 continue
@@ -912,7 +958,8 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm):
     # Annotation tick marks at corners produce short stubs near the border;
     # their "gap" spans from the border all the way to the first real wall.
     # Any gap that starts within EDGE_GUARD px of an image edge is an artifact.
-    EDGE_GUARD = max(BORDER_CROP_PX, 20)
+    # Use the dynamically measured border_crop so no values are hardcoded per image.
+    EDGE_GUARD = border_crop if border_crop is not None else BORDER_CROP_PX
 
     # Build lookup: H-walls by y, V-walls by x (reuse above dicts)
     # h_by_y and v_by_x already built above
@@ -995,6 +1042,7 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm):
             return (b_start, b_end, kind)
 
     # V-wall endpoints near H-walls
+    DEDUP_RADIUS_PX = max(12, int(ppm * 0.5))   # ~0.5m; adapts to image scale
     h_wall_list = list(h_by_y.items())   # [(y, [(x1, x2, wid), ...]), ...]
     for x, v_segs in v_by_x.items():
         for y1, y2, _wid in v_segs:
@@ -1012,8 +1060,8 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm):
                         gap_mid_y = (b_start + b_end) // 2
                         # Dedup: skip if already have an opening very close
                         already = any(
-                            abs(op["x_px"] - gap_mid_x) < 10 and
-                            abs(op["y_px"] - gap_mid_y) < 10
+                            abs(op["x_px"] - gap_mid_x) < DEDUP_RADIUS_PX and
+                            abs(op["y_px"] - gap_mid_y) < DEDUP_RADIUS_PX
                             for op in openings
                         )
                         if already:
@@ -1037,8 +1085,8 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm):
                         gap_mid_x = (b_start + b_end) // 2
                         gap_mid_y = y
                         already = any(
-                            abs(op["x_px"] - gap_mid_x) < 10 and
-                            abs(op["y_px"] - gap_mid_y) < 10
+                            abs(op["x_px"] - gap_mid_x) < DEDUP_RADIUS_PX and
+                            abs(op["y_px"] - gap_mid_y) < DEDUP_RADIUS_PX
                             for op in openings
                         )
                         if already:
@@ -1157,12 +1205,13 @@ class RasterParser:
         ppm = self._ppm_override if self._ppm_override > 0.0 else _detect_ppm(fp)
         self._last_ppm = ppm
 
-        wall_mask, room_mask = _segment(fp)
+        wall_mask, room_mask, border_crop = _segment(fp)
 
-        h_walls, v_walls  = _detect_walls(wall_mask)
+        h_walls, v_walls  = _detect_walls(wall_mask, border_crop)
         h_walls, v_walls  = _complete_outer_walls(h_walls, v_walls, FH, FW)
+        h_walls, v_walls  = _filter_edge_stubs(h_walls, v_walls, FH, FW, ppm, border_crop)
 
-        img_openings      = _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm)
+        img_openings      = _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop)
         rooms_px          = _detect_rooms(room_mask, wall_mask)
 
         all_walls  = h_walls + v_walls
@@ -1205,6 +1254,7 @@ class RasterParser:
         result._rooms_px        = rooms_px
         result._ppm             = ppm
         result._fp_h            = FH
+        result._wall_mask       = wall_mask   # for per-wall thickness measurement
 
         return result
 
@@ -1217,10 +1267,11 @@ class RasterParser:
         FH, FW  = fp.shape[:2]
         fp_gray = cv2.cvtColor(fp, cv2.COLOR_BGR2GRAY) if fp.ndim == 3 else fp
         ppm     = self._ppm_override if self._ppm_override > 0 else _detect_ppm(fp)
-        wm, rm  = _segment(fp)
-        hw, vw  = _detect_walls(wm)
+        wm, rm, border_crop = _segment(fp)
+        hw, vw  = _detect_walls(wm, border_crop)
         hw, vw  = _complete_outer_walls(hw, vw, FH, FW)
-        ops     = _detect_openings_from_image(fp_gray, hw, vw, ppm)
+        hw, vw  = _filter_edge_stubs(hw, vw, FH, FW, ppm, border_crop)
+        ops     = _detect_openings_from_image(fp_gray, hw, vw, ppm, border_crop)
         rooms   = _detect_rooms(rm, wm)
         vis     = _debug_vis(fp, hw, vw, rooms, ops)
         cv2.imwrite(output_path, vis)

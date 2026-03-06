@@ -924,20 +924,6 @@ function buildModel(data) {
   const model = data.model;
   if (!model) { log('No model data in response', 'err'); return; }
 
-  // Materials
-  const wallMat = new THREE.MeshPhongMaterial({
-    color: 0x1a2535,
-    emissive: 0x050d1a,
-    specular: 0x00e5ff,
-    shininess: 30,
-  });
-
-  const wireMat = new THREE.LineBasicMaterial({
-    color: 0x00e5ff,
-    transparent: true,
-    opacity: 0.4,
-  });
-
   const floorMat = new THREE.MeshPhongMaterial({
     color: 0x0d1117,
     emissive: 0x050a0f,
@@ -946,20 +932,74 @@ function buildModel(data) {
     side: THREE.DoubleSide,
   });
 
-  // Build walls
+  // ── Per-room colour palette (cycles if more rooms than colours) ──────────
+  // Each room gets a distinct hue; walls tagged with room_id use that hue.
+  // We keep colours dark/desaturated so they read as architectural, not toy.
+  const ROOM_PALETTE = [
+    { wall: 0x1a2f3a, wire: 0x00e5ff },  // cyan   — default / R1
+    { wall: 0x2a2218, wire: 0xff9944 },  // amber  — R2
+    { wall: 0x1e2a1e, wire: 0x44dd88 },  // green  — R3
+    { wall: 0x2a1e2a, wire: 0xcc66ff },  // purple — R4
+    { wall: 0x2a2218, wire: 0xffdd44 },  // yellow — R5
+    { wall: 0x1a2535, wire: 0x4488ff },  // blue   — R6
+    { wall: 0x2a1a1a, wire: 0xff4466 },  // red    — R7
+  ];
+
+  // Build room_id → palette index map from model.rooms order
+  const roomPaletteMap = {};
+  if (model.rooms) {
+    model.rooms.forEach((r, i) => {
+      roomPaletteMap[r.id] = i % ROOM_PALETTE.length;
+    });
+  }
+
+  // Reference outer wall thickness for emissive brightness scaling
+  // Outer walls are thicker → brighter emissive → visually heavier
+  const OUTER_THICK_REF = 0.27;  // metres — typical exterior wall at 33ppm
+
+  // ── Build walls ───────────────────────────────────────────────────────────
   model.walls.forEach(w => {
     const geo = new THREE.BoxGeometry(w.dimensions.width, w.dimensions.height, w.dimensions.depth);
-    const mesh = new THREE.Mesh(geo, wallMat.clone());
+
+    // Pick palette by room_id, fall back to index 0
+    const palIdx = (w.room_id && roomPaletteMap[w.room_id] !== undefined)
+      ? roomPaletteMap[w.room_id] : 0;
+    const pal = ROOM_PALETTE[palIdx];
+
+    // Emissive scales with thickness: outer walls (0.27m) glow more than inner (0.18m)
+    const thick = w.dimensions.depth || 0.2;
+    const thickRatio = Math.min(thick / OUTER_THICK_REF, 1.4);
+    const emR = Math.round(0x05 * thickRatio);
+    const emG = Math.round(0x0d * thickRatio);
+    const emB = Math.round(0x1a * thickRatio);
+
+    const mat = new THREE.MeshPhongMaterial({
+      color:     pal.wall,
+      emissive:  new THREE.Color(emR / 255, emG / 255, emB / 255),
+      specular:  pal.wire,
+      shininess: 28 + Math.round(thickRatio * 12),  // outer = shinier
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(w.position.x, w.position.y, w.position.z);
     mesh.rotation.y = w.rotation_y;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    // Stash for texture system: iterate wallMeshes and filter by room_id
+    mesh.userData = {
+      room_id:    w.room_id    || null,
+      room_color: w.room_color || null,
+      thickness:  thick,
+      pal_idx:    palIdx,
+    };
     scene.add(mesh);
     wallMeshes.push(mesh);
 
-    // Wireframe
+    // Wireframe — use room accent colour
     const edges = new THREE.EdgesGeometry(geo);
-    const wire = new THREE.LineSegments(edges, wireMat.clone());
+    const wire = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+      color: pal.wire, transparent: true, opacity: 0.45,
+    }));
     wire.position.copy(mesh.position);
     wire.rotation.copy(mesh.rotation);
     scene.add(wire);
@@ -1116,6 +1156,52 @@ function buildModel(data) {
   if (data.warnings?.length) {
     data.warnings.forEach(w => log('⚠ ' + w, 'info'));
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Texture system — apply per-room image textures to wall meshes
+// Usage: applyRoomTexture('room_1', 'textures/brick.jpg', 1.0)
+// Call reapplyTextures() after loading to refresh all meshes.
+// ─────────────────────────────────────────────────────────────────────────────
+const _texLoader   = new THREE.TextureLoader();
+const _roomTextures = {};   // room_id → THREE.Texture
+
+function applyRoomTexture(roomId, url, tileSizeMetres = 1.0) {
+  _texLoader.load(url, tex => {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.userData = { tileSize: tileSizeMetres };
+    _roomTextures[roomId] = tex;
+    _applyTextureToRoom(roomId, tex);
+    log(`Texture loaded → ${roomId}`, 'ok');
+  }, undefined, () => log(`Texture load failed: ${url}`, 'err'));
+}
+
+function _applyTextureToRoom(roomId, tex) {
+  wallMeshes.forEach(mesh => {
+    if (mesh.userData.room_id !== roomId) return;
+    const w = mesh.geometry.parameters.width;
+    const h = mesh.geometry.parameters.height;
+    const ts = tex.userData.tileSize || 1.0;
+    const t = tex.clone();
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(w / ts, h / ts);
+    t.needsUpdate = true;
+    mesh.material.map = t;
+    mesh.material.needsUpdate = true;
+  });
+}
+
+function clearRoomTexture(roomId) {
+  delete _roomTextures[roomId];
+  wallMeshes.forEach(mesh => {
+    if (mesh.userData.room_id !== roomId) return;
+    mesh.material.map = null;
+    mesh.material.needsUpdate = true;
+  });
+}
+
+function reapplyTextures() {
+  Object.entries(_roomTextures).forEach(([id, tex]) => _applyTextureToRoom(id, tex));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
