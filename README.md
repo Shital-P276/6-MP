@@ -23,6 +23,11 @@ floorplan-visualizer/
         └── test_pipeline.py     ← pytest test suite
 ```
 
+
+## Additional Documentation
+
+- [Technical Stack Documentation](TECH_STACK.md)
+
 ---
 
 ## Setup
