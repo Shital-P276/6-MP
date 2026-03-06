@@ -71,7 +71,7 @@ CROP_BRIGHT_TH    = 175   # floor-plan panel: pixels brighter than this
 WALL_LO, WALL_HI  = 82,  148
 ROOM_LO, ROOM_HI  = 153, 244
 GREEN_DIFF        = 22    # G-R and G-B delta for annotation suppression
-BORDER_CROP_PX    = 36    # outer annotation-grid strip to ignore
+BORDER_CROP_PX    = 4     # absolute minimum border strip (overridden dynamically in _segment)
 SKEL_MAX_ITER     = 80
 HOUGH_TH          = 7
 HOUGH_MIN_LEN     = 12
@@ -203,10 +203,90 @@ def _detect_ppm(fp) -> float:
     return FALLBACK_PPM
 
 
+# ── Step 2b — dynamic border crop ────────────────────────────────────────────
+
+def _detect_border_crop(fp, green_mask_dilated) -> int:
+    """
+    Dynamically compute the border crop width for this image.
+
+    Instead of a fixed pixel count, we find the inner edge of the green
+    annotation frame by scanning inward from each edge until we find a row/
+    column where green coverage drops below a 10% threshold.
+    Then we add a small buffer (GREEN_BORDER_BUFFER px) to catch any
+    fringe pixels that sneak through the green mask.
+
+    For images with no green frame (or very thin frames like 3px) this
+    naturally returns a small value, protecting the outer walls.
+    For images with wide annotation bands (>30px) it returns a larger value.
+
+    Falls back to BORDER_CROP_PX_MIN if detection fails.
+    """
+    FH, FW = fp.shape[:2]
+    GREEN_BORDER_BUFFER = 8   # px of buffer beyond the last green row/col
+    MIN_GREEN_COV = 0.10      # row/col is "green" if ≥ 10% of its pixels are green
+
+    def scan_inward_top():
+        last_green_row = -1
+        for y in range(FH // 2):
+            cov = float(green_mask_dilated[y, :].sum()) / (255 * FW)
+            if cov >= MIN_GREEN_COV:
+                last_green_row = y
+            elif last_green_row >= 0:
+                break   # first row with no significant green after green zone
+        return last_green_row + 1 + GREEN_BORDER_BUFFER if last_green_row >= 0 else BORDER_CROP_PX
+
+    def scan_inward_bottom():
+        last_green_row = -1
+        for y in range(FH - 1, FH // 2, -1):
+            cov = float(green_mask_dilated[y, :].sum()) / (255 * FW)
+            if cov >= MIN_GREEN_COV:
+                last_green_row = y
+            elif last_green_row >= 0:
+                break
+        return (FH - last_green_row) + GREEN_BORDER_BUFFER if last_green_row >= 0 else BORDER_CROP_PX
+
+    def scan_inward_left():
+        last_green_col = -1
+        for x in range(FW // 2):
+            cov = float(green_mask_dilated[:, x].sum()) / (255 * FH)
+            if cov >= MIN_GREEN_COV:
+                last_green_col = x
+            elif last_green_col >= 0:
+                break
+        return last_green_col + 1 + GREEN_BORDER_BUFFER if last_green_col >= 0 else BORDER_CROP_PX
+
+    def scan_inward_right():
+        last_green_col = -1
+        for x in range(FW - 1, FW // 2, -1):
+            cov = float(green_mask_dilated[:, x].sum()) / (255 * FW)
+            if cov >= MIN_GREEN_COV:
+                last_green_col = x
+            elif last_green_col >= 0:
+                break
+        return (FW - last_green_col) + GREEN_BORDER_BUFFER if last_green_col >= 0 else BORDER_CROP_PX
+
+    top    = scan_inward_top()
+    bottom = scan_inward_bottom()
+    left   = scan_inward_left()
+    right  = scan_inward_right()
+
+    # Use the median of the four sides to avoid asymmetric layouts skewing things
+    # but never go below the absolute minimum
+    sides = sorted([top, bottom, left, right])
+    crop  = max(BORDER_CROP_PX, sides[1])   # median of 4 = middle two, take lower
+    # Safety cap: never crop more than 8% of the smaller image dimension
+    max_crop = int(min(FH, FW) * 0.08)
+    return min(crop, max_crop)
+
+
 # ── Step 3 — segmentation ─────────────────────────────────────────────────────
 
 def _segment(fp):
-    """Return (wall_mask, room_mask) with annotation border stripped."""
+    """Return (wall_mask, room_mask) with annotation border stripped.
+    
+    The border width is determined dynamically from the green annotation frame
+    rather than a fixed constant — this handles floor plans of any size/scale.
+    """
     gray  = cv2.cvtColor(fp, cv2.COLOR_BGR2GRAY) if fp.ndim == 3 else fp
     FH, FW = gray.shape
 
@@ -218,14 +298,17 @@ def _segment(fp):
     else:
         green  = np.zeros_like(gray)
 
-    green  = cv2.dilate(green, cv2.getStructuringElement(cv2.MORPH_RECT, (4, 4)))
-    not_g  = cv2.bitwise_not(green)
+    green_d = cv2.dilate(green, cv2.getStructuringElement(cv2.MORPH_RECT, (4, 4)))
+    not_g   = cv2.bitwise_not(green_d)
 
     wall_mask = cv2.bitwise_and(cv2.inRange(gray, WALL_LO, WALL_HI), not_g)
     room_mask = cv2.bitwise_and(cv2.inRange(gray, ROOM_LO, ROOM_HI), not_g)
 
+    # Dynamic border crop: detect actual green frame extent instead of fixed px
+    b2 = _detect_border_crop(fp, green_d)
+    b2 = max(BORDER_CROP_PX, min(b2, FH // 4, FW // 4))  # sanity clamp
+
     inner = np.zeros((FH, FW), dtype=np.uint8)
-    b2    = BORDER_CROP_PX
     inner[b2:FH-b2, b2:FW-b2] = 255
     wall_mask = cv2.bitwise_and(wall_mask, inner)
     room_mask = cv2.bitwise_and(room_mask, inner)
@@ -809,6 +892,159 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm):
             kind = "door" if gpx <= max_door_px else "window"
             emit_inter(wid_left, 'V', x, y_top_end, y_bot_start,
                        b_start, b_end, kind)
+
+    # ── PASS 3: T-junction gaps (inner wall endpoint near outer wall body) ──────
+    # Pattern: an inner V-wall stub starts at y_start which is close to (but NOT
+    # touching) the bottom edge of a horizontal outer wall.  The gap between the
+    # outer wall's bottom face and the inner wall's top endpoint is a door opening.
+    # Same logic applies in all four T-junction orientations.
+    #
+    # Strategy:
+    #   For every V-wall endpoint (y_start or y_end), check if there is an H-wall
+    #   whose centerline is within WALL_HALF_PX (≈ half wall thickness) of the
+    #   endpoint, and if the gap between them (in image pixels) looks bright.
+    #   Similarly for every H-wall endpoint near a V-wall.
+
+    WALL_HALF_PX  = 20   # half wall thickness in pixels — endpoint tolerance
+    T_GAP_MAX_PX  = int(MAX_DOOR_M * ppm) + WALL_HALF_PX   # maximum gap to scan
+    T_GAP_MIN_PX  = max(2, int(MIN_OPENING_M * ppm))
+    # Guard: reject T-junction gaps whose scan range touches the image edge.
+    # Annotation tick marks at corners produce short stubs near the border;
+    # their "gap" spans from the border all the way to the first real wall.
+    # Any gap that starts within EDGE_GUARD px of an image edge is an artifact.
+    EDGE_GUARD = max(BORDER_CROP_PX, 20)
+
+    # Build lookup: H-walls by y, V-walls by x (reuse above dicts)
+    # h_by_y and v_by_x already built above
+
+    def scan_tjunction_gap(orient_inner, fixed_inner, endpoint_px,
+                            fixed_outer, a_outer, b_outer):
+        """
+        Scan the gap between inner wall endpoint and outer wall face for brightness.
+        orient_inner: orientation of the inner wall ('V' or 'H')
+        fixed_inner:  x (V-wall) or y (H-wall) coordinate of inner wall
+        endpoint_px:  y (V) or x (H) of the inner wall's tip
+        fixed_outer:  y (H-wall) or x (V-wall) of the outer wall
+        a_outer, b_outer: range of outer wall along its axis
+        Returns (bright_start, bright_end, kind) or None.
+        """
+        # Inner wall's tip must be within the outer wall's extent
+        if orient_inner == 'V':
+            # Inner=V at x=fixed_inner; tip at y=endpoint_px; outer=H at y=fixed_outer
+            if not (a_outer - WALL_HALF_PX <= fixed_inner <= b_outer + WALL_HALF_PX):
+                return None
+            # Determine gap direction: is endpoint_px above or below outer wall?
+            if endpoint_px < fixed_outer:
+                # inner wall tip is ABOVE outer wall (gap runs from endpoint_px to fixed_outer)
+                scan_start = endpoint_px
+                scan_end   = fixed_outer + WALL_HALF_PX
+            else:
+                # inner wall tip is BELOW outer wall
+                scan_start = fixed_outer - WALL_HALF_PX
+                scan_end   = endpoint_px
+            gap_range = scan_end - scan_start
+            if gap_range < T_GAP_MIN_PX or gap_range > T_GAP_MAX_PX:
+                return None
+            # Reject gaps that touch the image edge (annotation tick mark artifacts)
+            if scan_start < EDGE_GUARD or scan_end > FH - EDGE_GUARD:
+                return None
+            # Scan brightness along x=fixed_inner from scan_start to scan_end
+            b_start = b_end = None
+            for y in range(max(0, scan_start), min(FH - 1, scan_end) + 1):
+                v = _sample_wall_band(fp_gray, 'V', fixed_inner, y)
+                if v > OPENING_BRIGHT:
+                    if b_start is None: b_start = y
+                    b_end = y
+            if b_start is None:
+                return None
+            gpx = b_end - b_start + 1
+            if gpx < T_GAP_MIN_PX or gpx > T_GAP_MAX_PX:
+                return None
+            kind = "door" if gpx <= int(MAX_DOOR_M * ppm) else "window"
+            return (b_start, b_end, kind)
+
+        else:
+            # orient_inner == 'H'
+            # Inner=H at y=fixed_inner; tip at x=endpoint_px; outer=V at x=fixed_outer
+            if not (a_outer - WALL_HALF_PX <= fixed_inner <= b_outer + WALL_HALF_PX):
+                return None
+            if endpoint_px < fixed_outer:
+                scan_start = endpoint_px
+                scan_end   = fixed_outer + WALL_HALF_PX
+            else:
+                scan_start = fixed_outer - WALL_HALF_PX
+                scan_end   = endpoint_px
+            gap_range = scan_end - scan_start
+            if gap_range < T_GAP_MIN_PX or gap_range > T_GAP_MAX_PX:
+                return None
+            # Reject gaps that touch the image edge (annotation tick mark artifacts)
+            if scan_start < EDGE_GUARD or scan_end > FW - EDGE_GUARD:
+                return None
+            b_start = b_end = None
+            for x in range(max(0, scan_start), min(FW - 1, scan_end) + 1):
+                v = _sample_wall_band(fp_gray, 'H', fixed_inner, x)
+                if v > OPENING_BRIGHT:
+                    if b_start is None: b_start = x
+                    b_end = x
+            if b_start is None:
+                return None
+            gpx = b_end - b_start + 1
+            if gpx < T_GAP_MIN_PX or gpx > T_GAP_MAX_PX:
+                return None
+            kind = "door" if gpx <= int(MAX_DOOR_M * ppm) else "window"
+            return (b_start, b_end, kind)
+
+    # V-wall endpoints near H-walls
+    h_wall_list = list(h_by_y.items())   # [(y, [(x1, x2, wid), ...]), ...]
+    for x, v_segs in v_by_x.items():
+        for y1, y2, _wid in v_segs:
+            for endpoint_y in (y1, y2):
+                # Find H-walls whose y is within WALL_HALF_PX of this endpoint
+                for hy, h_segs in h_wall_list:
+                    if abs(hy - endpoint_y) > WALL_HALF_PX:
+                        continue
+                    for hx1, hx2, h_wid in h_segs:
+                        result = scan_tjunction_gap('V', x, endpoint_y, hy, hx1, hx2)
+                        if result is None:
+                            continue
+                        b_start, b_end, kind = result
+                        gap_mid_x = x
+                        gap_mid_y = (b_start + b_end) // 2
+                        # Dedup: skip if already have an opening very close
+                        already = any(
+                            abs(op["x_px"] - gap_mid_x) < 10 and
+                            abs(op["y_px"] - gap_mid_y) < 10
+                            for op in openings
+                        )
+                        if already:
+                            continue
+                        emit_inter(_wid, 'V', x, endpoint_y, hy,
+                                   b_start, b_end, kind)
+
+    # H-wall endpoints near V-walls
+    v_wall_list = list(v_by_x.items())   # [(x, [(y1, y2, wid), ...]), ...]
+    for y, h_segs in h_by_y.items():
+        for x1, x2, _wid in h_segs:
+            for endpoint_x in (x1, x2):
+                for vx, v_segs in v_wall_list:
+                    if abs(vx - endpoint_x) > WALL_HALF_PX:
+                        continue
+                    for vy1, vy2, v_wid in v_segs:
+                        result = scan_tjunction_gap('H', y, endpoint_x, vx, vy1, vy2)
+                        if result is None:
+                            continue
+                        b_start, b_end, kind = result
+                        gap_mid_x = (b_start + b_end) // 2
+                        gap_mid_y = y
+                        already = any(
+                            abs(op["x_px"] - gap_mid_x) < 10 and
+                            abs(op["y_px"] - gap_mid_y) < 10
+                            for op in openings
+                        )
+                        if already:
+                            continue
+                        emit_inter(_wid, 'H', y, endpoint_x, vx,
+                                   b_start, b_end, kind)
 
     return openings
 
