@@ -34,13 +34,14 @@ MIN_PIECE_LEN   = 0.15  # don't emit wall pieces shorter than this
 
 @dataclass
 class Opening:
-    wall_idx:  int
-    t_center:  float       # position along wall [0,1]
-    width:     float       # opening width in meters
-    kind:      str         # "door" | "window"
-    x:         float = 0.0 # world position (DXF coords)
-    y:         float = 0.0
-    angle:     float = 0.0 # wall angle (radians)
+    wall_idx:   int         # wall index, or -1 for freestanding inter-segment openings
+    t_center:   float       # position along wall [0,1], or -1.0 for freestanding
+    width:      float       # opening width in meters
+    kind:       str         # "door" | "window"
+    x:          float = 0.0 # world position (DXF coords)
+    y:          float = 0.0
+    angle:      float = 0.0 # wall angle (radians)
+    swing_side: str   = 'right'  # 'left'|'right' relative to wall travel dir
 
 
 # ── Geometry helpers ──────────────────────────────────────────────────────────
@@ -215,36 +216,38 @@ class OpeningDetector:
 def split_wall_at_openings(wall, openings_on_wall: list[Opening]) -> list[dict]:
     """
     Given a wall and its openings, return list of wall-piece dicts and opening dicts.
-    Each piece has: start_t, end_t, start (Point2D), end (Point2D), is_opening, kind
+    Each piece has: start_t, end_t, start (Point2D), end (Point2D), is_opening, kind,
+    and for openings: swing_side.
     """
     L = wall.length
     if L < 1e-6:
         return []
 
-    # Convert openings to (t_start, t_end, kind) intervals, sorted by position
+    # Convert openings to (t_start, t_end, kind, swing_side) intervals
     intervals = []
     for op in openings_on_wall:
         half = (op.width / 2) / L
         ts = max(0.0, op.t_center - half)
         te = min(1.0, op.t_center + half)
-        intervals.append((ts, te, op.kind))
+        intervals.append((ts, te, op.kind, getattr(op, 'swing_side', 'right')))
     intervals.sort()
 
-    # Merge overlapping intervals
+    # Merge overlapping intervals (keep swing_side of first)
     merged = []
-    for ts, te, kind in intervals:
+    for ts, te, kind, side in intervals:
         if merged and ts <= merged[-1][1] + 0.01:
-            merged[-1] = (merged[-1][0], max(merged[-1][1], te), merged[-1][2])
+            merged[-1] = (merged[-1][0], max(merged[-1][1], te), merged[-1][2], merged[-1][3])
         else:
-            merged.append([ts, te, kind])
+            merged.append([ts, te, kind, side])
 
     # Build piece list: alternating solid / opening
     pieces = []
     cursor = 0.0
-    for ts, te, kind in merged:
+    for ts, te, kind, side in merged:
         if ts - cursor > MIN_PIECE_LEN / L:
             pieces.append({"t0": cursor, "t1": ts, "is_opening": False})
-        pieces.append({"t0": ts, "t1": te, "is_opening": True, "kind": kind})
+        pieces.append({"t0": ts, "t1": te, "is_opening": True,
+                       "kind": kind, "swing_side": side})
         cursor = te
     if 1.0 - cursor > MIN_PIECE_LEN / L:
         pieces.append({"t0": cursor, "t1": 1.0, "is_opening": False})

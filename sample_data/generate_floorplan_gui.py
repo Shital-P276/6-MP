@@ -232,8 +232,25 @@ def _room_name(room_type: str, count: int) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DXF export
+# DXF export — with wall deduplication
+#
+# Rooms are placed edge-to-edge, so adjacent rooms share a wall.
+# We collect every wall edge from every room, then deduplicate before drawing.
+# Each unique wall is drawn exactly once as a double-line pair.
 # ─────────────────────────────────────────────────────────────────────────────
+
+def _wall_key(x1, y1, x2, y2, tol=0.01):
+    """
+    Canonical key for a wall segment — normalised so the lower-coordinate
+    endpoint always comes first, rounded to avoid float noise.
+    Two walls that are the same edge (even if drawn in opposite directions)
+    produce the same key and are deduplicated.
+    """
+    r = lambda v: round(v / tol) * tol
+    p1 = (r(x1), r(y1))
+    p2 = (r(x2), r(y2))
+    return (min(p1, p2), max(p1, p2))
+
 
 def export_to_dxf(plan: FloorPlan, filepath: str, wall_thickness: float = 0.2):
     if not EZDXF_OK:
@@ -249,42 +266,76 @@ def export_to_dxf(plan: FloorPlan, filepath: str, wall_thickness: float = 0.2):
     doc.layers.add("DOOR",   color=1)
     doc.layers.add("WINDOW", color=5)
 
-    wt = wall_thickness
-    wh = {"layer": "WALL"}
+    wt  = wall_thickness
+    wh  = {"layer": "WALL"}
+    dh  = {"layer": "DOOR"}
+    winh = {"layer": "WINDOW"}
 
-    def wall(x1, y1, x2, y2):
-        """Draw a double-line wall along a line."""
-        dx, dy = x2 - x1, y2 - y1
-        length = math.hypot(dx, dy)
-        if length < 1e-6:
-            return
-        nx, ny = -dy / length * wt / 2, dx / length * wt / 2
-        msp.add_line((x1 - nx, y1 - ny), (x2 - nx, y2 - ny), dxfattribs=wh)
-        msp.add_line((x1 + nx, y1 + ny), (x2 + nx, y2 + ny), dxfattribs=wh)
+    # ── Step 1: collect all wall edges from all rooms ──────────────────────
+    # Each room contributes 4 edges. Adjacent rooms share edges exactly.
+    # We store: key → (x1,y1,x2,y2) to deduplicate.
+    wall_edges: dict = {}   # key → (x1,y1,x2,y2)
 
     for room in plan.rooms:
         rx, ry, rw, rh = room.x, room.y, room.w, room.h
+        edges = [
+            (rx,        ry,        rx + rw, ry),          # bottom
+            (rx + rw,   ry,        rx + rw, ry + rh),     # right
+            (rx,        ry + rh,   rx + rw, ry + rh),     # top
+            (rx,        ry,        rx,      ry + rh),      # left
+        ]
+        for x1, y1, x2, y2 in edges:
+            k = _wall_key(x1, y1, x2, y2)
+            wall_edges[k] = (x1, y1, x2, y2)
 
-        # Draw 4 walls (shared walls will be double but that's fine for MVP)
-        wall(rx,        ry,        rx + rw,   ry)          # bottom
-        wall(rx + rw,   ry,        rx + rw,   ry + rh)     # right
-        wall(rx + rw,   ry + rh,   rx,        ry + rh)     # top
-        wall(rx,        ry + rh,   rx,        ry)          # left
+    # ── Step 2: draw each unique wall as a single centerline ──────────────
+    # Single-line export is simpler and works correctly with the detector's
+    # single-line fallback mode. Double-line pairs break when rooms share walls
+    # because deduplication produces single lines that can't be paired.
+    for x1, y1, x2, y2 in wall_edges.values():
+        length = math.hypot(x2 - x1, y2 - y1)
+        if length > 1e-6:
+            msp.add_line((x1, y1), (x2, y2), dxfattribs=wh)
 
-        # Room area marker (dashed line box for context)
-        msp.add_lwpolyline(
-            [(rx + 0.05, ry + 0.05), (rx + rw - 0.05, ry + 0.05),
-             (rx + rw - 0.05, ry + rh - 0.05), (rx + 0.05, ry + rh - 0.05)],
-            close=True,
-            dxfattribs={"layer": "ROOM", "linetype": "DASHED"},
-        )
+    # ── Step 3: build edge ownership map for door/window placement ──────────
+    # We need to know which walls are exterior (count=1) vs interior shared (count=2)
+    # so we can correctly place doors on shared walls and windows on exterior walls.
+    def _edge_key(x1, y1, x2, y2, tol=0.01):
+        r = lambda v: round(v / tol) * tol
+        p1 = (r(x1), r(y1)); p2 = (r(x2), r(y2))
+        return (min(p1, p2), max(p1, p2))
 
-        # Room label
+    def _room_edges(room):
+        rx, ry, rw, rh = room.x, room.y, room.w, room.h
+        return {
+            'bottom': (rx, ry, rx + rw, ry),
+            'top':    (rx, ry + rh, rx + rw, ry + rh),
+            'left':   (rx, ry, rx, ry + rh),
+            'right':  (rx + rw, ry, rx + rw, ry + rh),
+        }
+
+    edge_count: dict = {}
+    for room in plan.rooms:
+        for _, (x1, y1, x2, y2) in _room_edges(room).items():
+            k = _edge_key(x1, y1, x2, y2)
+            edge_count[k] = edge_count.get(k, 0) + 1
+
+    exterior_edges = {k for k, v in edge_count.items() if v == 1}
+    interior_edges = {k for k, v in edge_count.items() if v == 2}
+
+    # ── Step 4: annotations (labels, doors, windows) per room ────────────────
+    door_w = 0.9   # standard door width (m)
+    win_w  = 1.2   # standard window width (m)
+
+    for room in plan.rooms:
+        rx, ry, rw, rh = room.x, room.y, room.w, room.h
+        edges = _room_edges(room)
+
+        # Room name label
         msp.add_text(
             room.name,
             dxfattribs={
-                "layer": "TEXT",
-                "height": 0.25,
+                "layer": "TEXT", "height": 0.25,
                 "insert": (room.cx - len(room.name) * 0.07, room.cy),
             }
         )
@@ -293,31 +344,110 @@ def export_to_dxf(plan: FloorPlan, filepath: str, wall_thickness: float = 0.2):
         msp.add_text(
             f"{room.area:.1f}m²",
             dxfattribs={
-                "layer": "TEXT",
-                "height": 0.18,
+                "layer": "TEXT", "height": 0.18,
                 "insert": (room.cx - 0.3, room.cy - 0.35),
             }
         )
 
-        # Add door opening (one per room, on the bottom wall or right wall)
-        door_w = 0.9
-        if rw > door_w + 0.5:
-            door_x = rx + rw * 0.3
-            msp.add_line((door_x, ry), (door_x + door_w, ry), dxfattribs={"layer": "DOOR"})
-            # Door arc
-            msp.add_arc(
-                center=(door_x, ry),
-                radius=door_w,
-                start_angle=0,
-                end_angle=90,
-                dxfattribs={"layer": "DOOR"},
-            )
+        # ── Door: one per room on a shared INTERIOR wall ─────────────────────
+        # Priority: shared wall with hallway > any shared wall
+        # Hallway itself gets no door (it IS the circulation space)
+        if room.room_type != "hallway":
+            door_placed = False
+            # Try interior walls first (correct — opens between rooms/hallway)
+            for side, (x1, y1, x2, y2) in edges.items():
+                k = _edge_key(x1, y1, x2, y2)
+                if k not in interior_edges:
+                    continue
+                L = math.hypot(x2 - x1, y2 - y1)
+                if L < door_w + 0.3:
+                    continue
 
-        # Windows on exterior walls (bottom or right)
-        if room.room_type not in ("bathroom", "hallway", "storage"):
-            win_w = min(1.2, rw * 0.4)
-            win_x = rx + (rw - win_w) / 2
-            msp.add_line((win_x, ry), (win_x + win_w, ry), dxfattribs={"layer": "WINDOW"})
+                # Place door at 30% along the shared wall from the lower end
+                t = 0.3
+                hinge_x = x1 + t * (x2 - x1)
+                hinge_y = y1 + t * (y2 - y1)
+
+                # Door leaf: from hinge to hinge + door_w along wall direction
+                dx_n = (x2 - x1) / L
+                dy_n = (y2 - y1) / L
+                leaf_ex = hinge_x + door_w * dx_n
+                leaf_ey = hinge_y + door_w * dy_n
+
+                # Door swing arc: quarter circle sweeping INTO the room
+                # Determine sweep direction: perpendicular pointing inward
+                # Inward normal: rotate wall direction 90° toward room center
+                perp_x = -dy_n
+                perp_y =  dx_n
+                room_mid_x = rx + rw / 2
+                room_mid_y = ry + rh / 2
+                to_room_x = room_mid_x - hinge_x
+                to_room_y = room_mid_y - hinge_y
+                # If perp doesn't point toward room, flip it
+                if perp_x * to_room_x + perp_y * to_room_y < 0:
+                    perp_x, perp_y = -perp_x, -perp_y
+
+                # Arc start angle: direction of door leaf (along wall)
+                start_angle = math.degrees(math.atan2(dy_n, dx_n))
+                # Arc end angle: 90° swept into room
+                end_angle = math.degrees(math.atan2(perp_y, perp_x))
+                # Ensure positive sweep (always draw arc going counter-clockwise)
+                if end_angle < start_angle:
+                    end_angle += 360
+
+                # Draw door leaf line
+                msp.add_line((hinge_x, hinge_y), (leaf_ex, leaf_ey), dxfattribs=dh)
+                # Draw swing arc
+                msp.add_arc(
+                    center=(hinge_x, hinge_y),
+                    radius=door_w,
+                    start_angle=start_angle,
+                    end_angle=end_angle,
+                    dxfattribs=dh,
+                )
+                door_placed = True
+                break
+
+            # Fallback: place door on any wall wide enough (for rooms with no shared walls)
+            if not door_placed:
+                for side in ('bottom', 'left', 'right', 'top'):
+                    x1, y1, x2, y2 = edges[side]
+                    L = math.hypot(x2 - x1, y2 - y1)
+                    if L < door_w + 0.3:
+                        continue
+                    t = 0.3
+                    hinge_x = x1 + t * (x2 - x1)
+                    hinge_y = y1 + t * (y2 - y1)
+                    dx_n = (x2 - x1) / L; dy_n = (y2 - y1) / L
+                    leaf_ex = hinge_x + door_w * dx_n
+                    leaf_ey = hinge_y + door_w * dy_n
+                    start_angle = math.degrees(math.atan2(dy_n, dx_n))
+                    end_angle   = start_angle + 90
+                    msp.add_line((hinge_x, hinge_y), (leaf_ex, leaf_ey), dxfattribs=dh)
+                    msp.add_arc(center=(hinge_x, hinge_y), radius=door_w,
+                                start_angle=start_angle, end_angle=end_angle, dxfattribs=dh)
+                    break
+
+        # ── Window: one per room on an EXTERIOR wall ─────────────────────────
+        # Skip rooms that don't typically have windows
+        if room.room_type not in ("hallway", "storage"):
+            for side in ('bottom', 'top', 'left', 'right'):
+                x1, y1, x2, y2 = edges[side]
+                k = _edge_key(x1, y1, x2, y2)
+                if k not in exterior_edges:
+                    continue
+                L = math.hypot(x2 - x1, y2 - y1)
+                if L < win_w + 0.4:
+                    continue
+                # Centre window on the wall
+                ww = min(win_w, L * 0.45)
+                t_mid = 0.5
+                t0 = t_mid - ww / (2 * L)
+                t1 = t_mid + ww / (2 * L)
+                wx0 = x1 + t0 * (x2 - x1); wy0 = y1 + t0 * (y2 - y1)
+                wx1 = x1 + t1 * (x2 - x1); wy1 = y1 + t1 * (y2 - y1)
+                msp.add_line((wx0, wy0), (wx1, wy1), dxfattribs=winh)
+                break
 
     # Title block
     msp.add_text(

@@ -120,7 +120,8 @@ def wall_to_boxes(wall: Wall, openings: list[Opening]) -> tuple[list[dict], list
                 "rotation_y": round(rot_y, 6),
                 # Door leaf starts at one side of opening
                 "leaf": _door_leaf(p["sx"], p["sy"], p["ex"], p["ey"],
-                                   thick, h, rot_y),
+                                   thick, h, rot_y,
+                                   p.get("swing_side", "right")),
             })
 
         elif p.get("kind") == "window":
@@ -144,17 +145,43 @@ def wall_to_boxes(wall: Wall, openings: list[Opening]) -> tuple[list[dict], list
     return wall_boxes, door_dicts, win_dicts
 
 
-def _door_leaf(sx, sy, ex, ey, thick, h, rot_y):
-    """Thin door leaf box at the hinge side of the opening."""
-    L = math.hypot(ex-sx, ey-sy)
-    # Leaf sits at the start side, rotated open 45° visually
-    cx = sx + (ex-sx) * 0.5
-    cy = sy + (ey-sy) * 0.5
+def _door_leaf(sx, sy, ex, ey, thick, h, rot_y, swing_side='right'):
+    """
+    Thin door leaf hinged at the hinge end of the opening, swung ~80 degrees open
+    toward the room (swing_side: 'left'|'right' relative to wall travel direction).
+
+    Wall travel direction is from (sx,sy) toward (ex,ey).
+    'right' = the right hand side when walking from start to end (positive normal).
+    'left'  = the left hand side (negative normal).
+
+    For H-walls (traveling +X):
+      'right' in image coords = BELOW the wall (larger y) = DXF -Y direction = Three.js +Z
+      'left'  = ABOVE the wall
+
+    We place the hinge at the START corner and swing the leaf toward the room side.
+    The swing sign flips based on swing_side.
+    """
+    L = math.hypot(ex - sx, ey - sy)
+    leaf_h = min(h - 0.05, 2.1)   # standard door height
+    swing_angle = math.pi * 0.44  # ~80 degrees open
+
+    # swing_side 'right' → leaf swings toward positive normal (+90 from wall travel)
+    # swing_side 'left'  → leaf swings toward negative normal (-90 from wall travel)
+    sign = -1.0 if swing_side == 'left' else 1.0
+
+    # Hinge at the start corner
+    hinge_x = sx
+    hinge_y = sy
+    # Door leaf center at L/2 from hinge in the swung direction
+    angle = rot_y + sign * swing_angle
+    cx = hinge_x + (L / 2) * math.cos(angle)
+    cy = hinge_y - (L / 2) * math.sin(angle)  # DXF Y → -Z
+
     return {
-        "position":   {"x": round(cx,4), "y": round(h*0.5,4), "z": round(-cy,4)},
-        "dimensions": {"width": round(L,4), "height": round(h,4),
-                       "depth": round(DOOR_LEAF_T,4)},
-        "rotation_y": round(rot_y + math.pi/4, 6),  # 45° open
+        "position":   {"x": round(cx, 4), "y": round(leaf_h * 0.5, 4), "z": round(-cy, 4)},
+        "dimensions": {"width": round(L, 4), "height": round(leaf_h, 4),
+                       "depth": round(DOOR_LEAF_T, 4)},
+        "rotation_y": round(angle, 6),
     }
 
 
@@ -211,6 +238,10 @@ def room_to_label(room, wall_height: float = 3.0):
             "y": round(wall_height * 0.55, 3),
             "z": round(-room.centroid_y, 3),
         },
+        "dimensions": {
+            "width": round(room.width, 3),
+            "depth": round(room.depth, 3),
+        },
         "confidence": room.confidence,
     }
 
@@ -235,6 +266,71 @@ class GeometryBuilder:
             model.walls.extend(wall_boxes)
             model.doors.extend(door_dicts)
             model.windows.extend(win_dicts)
+
+        # ── Freestanding inter-segment openings (wall_idx == -1) ─────────────
+        # These are openings that live in the gap between two collinear wall stubs.
+        # The stubs themselves are already rendered correctly (no overlap).
+        # We only need to emit the door leaf / window glass geometry.
+        freestanding = [op for op in (openings or []) if op.wall_idx == -1]
+        for op in freestanding:
+            # Use a representative wall thickness from the nearest wall
+            thick = 0.2
+            if walls:
+                # Find nearest wall to get its thickness
+                min_d = float('inf')
+                for wall in walls:
+                    mid_x = (wall.start.x + wall.end.x) / 2
+                    mid_y = (wall.start.y + wall.end.y) / 2
+                    d = math.hypot(op.x - mid_x, op.y - mid_y)
+                    if d < min_d:
+                        min_d = d
+                        thick = max(wall.thickness, 0.05)
+
+            rot_y = -op.angle
+            cx_dxf = op.x
+            cy_dxf = op.y
+            h = wall_height
+
+            if op.kind == "door":
+                # Hinge at one end of the opening, leaf swung open
+                half = op.width / 2
+                sx = cx_dxf - half * math.cos(op.angle)
+                sy = cy_dxf - half * math.sin(op.angle)
+                ex = cx_dxf + half * math.cos(op.angle)
+                ey = cy_dxf + half * math.sin(op.angle)
+                model.doors.append({
+                    "position": {
+                        "x": round(cx_dxf, 4),
+                        "y": round(h / 2, 4),
+                        "z": round(-cy_dxf, 4),
+                    },
+                    "width":      round(op.width, 4),
+                    "height":     round(h, 4),
+                    "depth":      round(thick, 4),
+                    "rotation_y": round(rot_y, 6),
+                    "leaf": _door_leaf(sx, sy, ex, ey, thick, h, rot_y,
+                                       getattr(op, 'swing_side', 'right')),
+                })
+            elif op.kind == "window":
+                half = op.width / 2
+                sx = cx_dxf - half * math.cos(op.angle)
+                sy = cy_dxf - half * math.sin(op.angle)
+                ex = cx_dxf + half * math.cos(op.angle)
+                ey = cy_dxf + half * math.sin(op.angle)
+                model.windows.append({
+                    "position": {
+                        "x": round(cx_dxf, 4),
+                        "y": round(h / 2, 4),
+                        "z": round(-cy_dxf, 4),
+                    },
+                    "width":      round(op.width, 4),
+                    "height":     round(h, 4),
+                    "depth":      round(thick, 4),
+                    "rotation_y": round(rot_y, 6),
+                    "sill_h":     SILL_HEIGHT,
+                    "win_h":      WIN_HEIGHT,
+                    "pieces": _window_pieces(sx, sy, ex, ey, thick, h, rot_y),
+                })
 
         if bounds:
             model.floors.append(self._floor(bounds))

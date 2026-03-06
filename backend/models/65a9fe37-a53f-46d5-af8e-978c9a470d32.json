@@ -1,0 +1,1166 @@
+{
+  "success": true,
+  "processing_time_ms": 190.0,
+  "warnings": [],
+  "source_type": "dxf",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 32,
+      "floor_count": 1,
+      "room_count": 7,
+      "door_count": 4,
+      "window_count": 6,
+      "total_wall_length": 93.4,
+      "paired_walls": 1,
+      "bounds": {
+        "minx": 0.0,
+        "miny": 0.0,
+        "maxx": 10.4,
+        "maxy": 11.4
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [
+      {
+        "type": "box",
+        "position": {
+          "x": 6.5,
+          "y": 1.5,
+          "z": -11.1
+        },
+        "dimensions": {
+          "width": 2.2,
+          "height": 3.0,
+          "depth": 0.6
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 0.782,
+        "length": 2.2,
+        "thickness": 0.6
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.9,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 1.8,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.8,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.9,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 1.8,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.8,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.8,
+          "y": 1.5,
+          "z": -2.35
+        },
+        "dimensions": {
+          "width": 4.7,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.495,
+          "y": 1.5,
+          "z": -4.7
+        },
+        "dimensions": {
+          "width": 0.99,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.99,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.345,
+          "y": 1.5,
+          "z": -4.7
+        },
+        "dimensions": {
+          "width": 2.91,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 2.91,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -2.35
+        },
+        "dimensions": {
+          "width": 4.7,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.8,
+          "y": 1.5,
+          "z": -6.5
+        },
+        "dimensions": {
+          "width": 3.6,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.495,
+          "y": 1.5,
+          "z": -8.3
+        },
+        "dimensions": {
+          "width": 0.99,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.99,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.345,
+          "y": 1.5,
+          "z": -8.3
+        },
+        "dimensions": {
+          "width": 2.91,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 2.91,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -5.3
+        },
+        "dimensions": {
+          "width": 1.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.2,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -7.7
+        },
+        "dimensions": {
+          "width": 1.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.2,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.8,
+          "y": 1.5,
+          "z": -9.85
+        },
+        "dimensions": {
+          "width": 3.1,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.9,
+          "y": 1.5,
+          "z": -11.4
+        },
+        "dimensions": {
+          "width": 1.8,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.8,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.9,
+          "y": 1.5,
+          "z": -11.4
+        },
+        "dimensions": {
+          "width": 1.8,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.8,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -9.85
+        },
+        "dimensions": {
+          "width": 3.1,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.8,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 1.6,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.6,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 9.6,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 1.6,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.6,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.4,
+          "y": 1.5,
+          "z": -2.0
+        },
+        "dimensions": {
+          "width": 4.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.435,
+          "y": 1.5,
+          "z": -4.0
+        },
+        "dimensions": {
+          "width": 0.87,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.87,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 9.085,
+          "y": 1.5,
+          "z": -4.0
+        },
+        "dimensions": {
+          "width": 2.63,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 2.63,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.0,
+          "y": 1.5,
+          "z": -2.0
+        },
+        "dimensions": {
+          "width": 4.0,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.4,
+          "y": 1.5,
+          "z": -6.1
+        },
+        "dimensions": {
+          "width": 4.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.435,
+          "y": 1.5,
+          "z": -8.2
+        },
+        "dimensions": {
+          "width": 0.87,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.87,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 9.085,
+          "y": 1.5,
+          "z": -8.2
+        },
+        "dimensions": {
+          "width": 2.63,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 2.63,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.0,
+          "y": 1.5,
+          "z": -4.75
+        },
+        "dimensions": {
+          "width": 1.5,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.5,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.0,
+          "y": 1.5,
+          "z": -7.45
+        },
+        "dimensions": {
+          "width": 1.5,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.5,
+        "thickness": 0.2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.4,
+          "y": 1.5,
+          "z": -9.5
+        },
+        "dimensions": {
+          "width": 2.6,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.0,
+          "y": 1.5,
+          "z": -9.5
+        },
+        "dimensions": {
+          "width": 2.6,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.4,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "dimensions": {
+          "width": 1.2,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 6.0,
+          "y": 1.5,
+          "z": -5.7
+        },
+        "dimensions": {
+          "width": 11.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.8,
+          "y": 1.5,
+          "z": -5.7
+        },
+        "dimensions": {
+          "width": 11.4,
+          "height": 3.0,
+          "depth": 0.2
+        },
+        "rotation_y": -1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      }
+    ],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": 5.2,
+          "y": 0.0,
+          "z": -5.7
+        },
+        "dimensions": {
+          "width": 10.4,
+          "depth": 11.4
+        }
+      }
+    ],
+    "rooms": [
+      {
+        "id": 0,
+        "label": "Living Room",
+        "room_type": "living_room",
+        "color": "#2d6a9f",
+        "area": 21.2,
+        "position": {
+          "x": 2.35,
+          "y": 1.65,
+          "z": -2.3
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 1,
+        "label": "Hallway",
+        "room_type": "hallway",
+        "color": "#3a3a3a",
+        "area": 11.9,
+        "position": {
+          "x": 5.35,
+          "y": 1.65,
+          "z": -5.675
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 2,
+        "label": "Bedroom 1",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 16.6,
+        "position": {
+          "x": 8.175,
+          "y": 1.65,
+          "z": -1.95
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 3,
+        "label": "Bedroom 2",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 17.4,
+        "position": {
+          "x": 8.175,
+          "y": 1.65,
+          "z": -6.05
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 4,
+        "label": "Kitchen",
+        "room_type": "kitchen",
+        "color": "#7a5a2d",
+        "area": 16.3,
+        "position": {
+          "x": 2.35,
+          "y": 1.65,
+          "z": -6.475
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 5,
+        "label": "Bathroom",
+        "room_type": "bathroom",
+        "color": "#2d7a5a",
+        "area": 10.5,
+        "position": {
+          "x": 8.175,
+          "y": 1.65,
+          "z": -9.45
+        },
+        "confidence": 0.8999999999999999
+      },
+      {
+        "id": 6,
+        "label": "Dining Room",
+        "room_type": "dining",
+        "color": "#7a3a2d",
+        "area": 13.7,
+        "position": {
+          "x": 2.35,
+          "y": 1.65,
+          "z": -9.85
+        },
+        "confidence": 0.8999999999999999
+      }
+    ],
+    "doors": [
+      {
+        "position": {
+          "x": 1.44,
+          "y": 1.5,
+          "z": -4.7
+        },
+        "width": 0.9,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 1.44,
+            "y": 1.5,
+            "z": -4.7
+          },
+          "dimensions": {
+            "width": 0.9,
+            "height": 3.0,
+            "depth": 0.05
+          },
+          "rotation_y": 0.785398
+        }
+      },
+      {
+        "position": {
+          "x": 1.44,
+          "y": 1.5,
+          "z": -8.3
+        },
+        "width": 0.9,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 1.44,
+            "y": 1.5,
+            "z": -8.3
+          },
+          "dimensions": {
+            "width": 0.9,
+            "height": 3.0,
+            "depth": 0.05
+          },
+          "rotation_y": 0.785398
+        }
+      },
+      {
+        "position": {
+          "x": 7.32,
+          "y": 1.5,
+          "z": -4.0
+        },
+        "width": 0.9,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 7.32,
+            "y": 1.5,
+            "z": -4.0
+          },
+          "dimensions": {
+            "width": 0.9,
+            "height": 3.0,
+            "depth": 0.05
+          },
+          "rotation_y": 0.785398
+        }
+      },
+      {
+        "position": {
+          "x": 7.32,
+          "y": 1.5,
+          "z": -8.2
+        },
+        "width": 0.9,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 7.32,
+            "y": 1.5,
+            "z": -8.2
+          },
+          "dimensions": {
+            "width": 0.9,
+            "height": 3.0,
+            "depth": 0.05
+          },
+          "rotation_y": 0.785398
+        }
+      }
+    ],
+    "windows": [
+      {
+        "position": {
+          "x": 7.9,
+          "y": 1.5,
+          "z": -11.1
+        },
+        "width": 0.6,
+        "height": 3.0,
+        "depth": 0.6,
+        "rotation_y": -0.0,
+        "sill_h": 0.9,
+        "win_h": 1.2,
+        "pieces": [
+          {
+            "kind": "sill",
+            "position": {
+              "x": 7.9,
+              "y": 0.45,
+              "z": -11.1
+            },
+            "dimensions": {
+              "width": 0.6,
+              "height": 0.9,
+              "depth": 0.6
+            },
+            "rotation_y": -0.0
+          },
+          {
+            "kind": "header",
+            "position": {
+              "x": 7.9,
+              "y": 2.55,
+              "z": -11.1
+            },
+            "dimensions": {
+              "width": 0.6,
+              "height": 0.9,
+              "depth": 0.6
+            },
+            "rotation_y": -0.0
+          },
+          {
+            "kind": "glass",
+            "position": {
+              "x": 7.9,
+              "y": 1.5,
+              "z": -11.1
+            },
+            "dimensions": {
+              "width": 0.6,
+              "height": 1.2,
+              "depth": 0.09
+            },
+            "rotation_y": -0.0
+          }
+        ]
+      },
+      {
+        "position": {
+          "x": 2.4,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "width": 1.2,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "sill_h": 0.9,
+        "win_h": 1.2,
+        "pieces": [
+          {
+            "kind": "sill",
+            "position": {
+              "x": 2.4,
+              "y": 0.45,
+              "z": -0.0
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 0.9,
+              "depth": 0.2
+            },
+            "rotation_y": -0.0
+          },
+          {
+            "kind": "header",
+            "position": {
+              "x": 2.4,
+              "y": 2.55,
+              "z": -0.0
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 0.9,
+              "depth": 0.2
+            },
+            "rotation_y": -0.0
+          },
+          {
+            "kind": "glass",
+            "position": {
+              "x": 2.4,
+              "y": 1.5,
+              "z": -0.0
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 1.2,
+              "depth": 0.03
+            },
+            "rotation_y": -0.0
+          }
+        ]
+      },
+      {
+        "position": {
+          "x": 0.0,
+          "y": 1.5,
+          "z": -6.5
+        },
+        "width": 1.2,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -1.570796,
+        "sill_h": 0.9,
+        "win_h": 1.2,
+        "pieces": [
+          {
+            "kind": "sill",
+            "position": {
+              "x": 0.0,
+              "y": 0.45,
+              "z": -6.5
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 0.9,
+              "depth": 0.2
+            },
+            "rotation_y": -1.570796
+          },
+          {
+            "kind": "header",
+            "position": {
+              "x": 0.0,
+              "y": 2.55,
+              "z": -6.5
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 0.9,
+              "depth": 0.2
+            },
+            "rotation_y": -1.570796
+          },
+          {
+            "kind": "glass",
+            "position": {
+              "x": 0.0,
+              "y": 1.5,
+              "z": -6.5
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 1.2,
+              "depth": 0.03
+            },
+            "rotation_y": -1.570796
+          }
+        ]
+      },
+      {
+        "position": {
+          "x": 2.4,
+          "y": 1.5,
+          "z": -11.4
+        },
+        "width": 1.2,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "sill_h": 0.9,
+        "win_h": 1.2,
+        "pieces": [
+          {
+            "kind": "sill",
+            "position": {
+              "x": 2.4,
+              "y": 0.45,
+              "z": -11.4
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 0.9,
+              "depth": 0.2
+            },
+            "rotation_y": -0.0
+          },
+          {
+            "kind": "header",
+            "position": {
+              "x": 2.4,
+              "y": 2.55,
+              "z": -11.4
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 0.9,
+              "depth": 0.2
+            },
+            "rotation_y": -0.0
+          },
+          {
+            "kind": "glass",
+            "position": {
+              "x": 2.4,
+              "y": 1.5,
+              "z": -11.4
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 1.2,
+              "depth": 0.03
+            },
+            "rotation_y": -0.0
+          }
+        ]
+      },
+      {
+        "position": {
+          "x": 8.2,
+          "y": 1.5,
+          "z": -0.0
+        },
+        "width": 1.2,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -0.0,
+        "sill_h": 0.9,
+        "win_h": 1.2,
+        "pieces": [
+          {
+            "kind": "sill",
+            "position": {
+              "x": 8.2,
+              "y": 0.45,
+              "z": -0.0
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 0.9,
+              "depth": 0.2
+            },
+            "rotation_y": -0.0
+          },
+          {
+            "kind": "header",
+            "position": {
+              "x": 8.2,
+              "y": 2.55,
+              "z": -0.0
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 0.9,
+              "depth": 0.2
+            },
+            "rotation_y": -0.0
+          },
+          {
+            "kind": "glass",
+            "position": {
+              "x": 8.2,
+              "y": 1.5,
+              "z": -0.0
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 1.2,
+              "depth": 0.03
+            },
+            "rotation_y": -0.0
+          }
+        ]
+      },
+      {
+        "position": {
+          "x": 6.0,
+          "y": 1.5,
+          "z": -6.1
+        },
+        "width": 1.2,
+        "height": 3.0,
+        "depth": 0.2,
+        "rotation_y": -1.570796,
+        "sill_h": 0.9,
+        "win_h": 1.2,
+        "pieces": [
+          {
+            "kind": "sill",
+            "position": {
+              "x": 6.0,
+              "y": 0.45,
+              "z": -6.1
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 0.9,
+              "depth": 0.2
+            },
+            "rotation_y": -1.570796
+          },
+          {
+            "kind": "header",
+            "position": {
+              "x": 6.0,
+              "y": 2.55,
+              "z": -6.1
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 0.9,
+              "depth": 0.2
+            },
+            "rotation_y": -1.570796
+          },
+          {
+            "kind": "glass",
+            "position": {
+              "x": 6.0,
+              "y": 1.5,
+              "z": -6.1
+            },
+            "dimensions": {
+              "width": 1.2,
+              "height": 1.2,
+              "depth": 0.03
+            },
+            "rotation_y": -1.570796
+          }
+        ]
+      }
+    ]
+  },
+  "stats": {
+    "wall_segments": 24,
+    "walls_detected": 23,
+    "paired_walls": 1,
+    "rooms_detected": 7,
+    "doors_detected": 4,
+    "windows_detected": 6
+  }
+}
