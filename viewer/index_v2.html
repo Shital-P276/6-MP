@@ -524,6 +524,37 @@
       border-radius: 50%;
       flex-shrink: 0;
     }
+
+    /* ── View Mode Toggle ── */
+    .mode-bar { display:flex; background:var(--bg); border-radius:3px; padding:3px; gap:3px; margin-bottom:12px; }
+    .mode-btn { flex:1; padding:7px 4px; font-family:var(--mono); font-size:10px; letter-spacing:.08em; border:1px solid transparent; background:transparent; color:var(--text-dim); cursor:pointer; border-radius:2px; transition:all .2s; text-align:center; }
+    .mode-btn.active { background:var(--surface); border-color:var(--accent); color:var(--accent); }
+
+    /* ── Material Panel ── */
+    .mat-scope-row { display:flex; gap:4px; margin-bottom:10px; }
+    .mat-scope-btn { flex:1; padding:5px 4px; font-family:var(--mono); font-size:9px; letter-spacing:.06em; border:1px solid var(--border); background:transparent; color:var(--text-dim); cursor:pointer; border-radius:2px; transition:all .2s; text-align:center; }
+    .mat-scope-btn.active { border-color:var(--accent2); color:var(--accent2); background:rgba(255,107,53,.08); }
+    .tex-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-bottom:10px; }
+    .tex-swatch { aspect-ratio:1; border-radius:3px; border:2px solid transparent; cursor:pointer; transition:border-color .15s,transform .1s; position:relative; overflow:hidden; }
+    .tex-swatch:hover { transform:scale(1.06); }
+    .tex-swatch.selected { border-color:var(--accent); }
+    .tex-swatch canvas { width:100%; height:100%; display:block; }
+    .tex-swatch .tex-label { position:absolute; bottom:0; left:0; right:0; font-family:var(--mono); font-size:8px; background:rgba(0,0,0,.65); color:#fff; text-align:center; padding:2px 0; letter-spacing:.06em; }
+    .color-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .color-row label { font-family:var(--mono); font-size:10px; color:var(--text-dim); flex:1; }
+    .color-row input[type="color"] { width:36px; height:24px; border:1px solid var(--border); border-radius:3px; background:none; cursor:pointer; padding:1px; }
+    .sel-hint { font-family:var(--mono); font-size:9px; color:var(--text-dim); text-align:center; padding:4px; border:1px dashed var(--border); border-radius:3px; margin-bottom:8px; line-height:1.5; }
+    .sel-hint.active { border-color:var(--accent2); color:var(--accent2); }
+    #sel-count { color:var(--accent); font-weight:bold; }
+    .btn.apply { border-color:var(--accent2); color:var(--accent2); background:rgba(255,107,53,.06); margin-bottom:6px; }
+    .btn.apply:hover { background:rgba(255,107,53,.14); }
+    .btn.reset-mat { font-size:10px; padding:6px; opacity:.6; }
+    .floor-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-top:6px; }
+    .floor-swatch { aspect-ratio:1; border-radius:3px; border:2px solid transparent; cursor:pointer; transition:border-color .15s; overflow:hidden; position:relative; }
+    .floor-swatch:hover { border-color:var(--text-dim); }
+    .floor-swatch.selected { border-color:var(--accent); }
+    .floor-swatch canvas { width:100%; height:100%; display:block; }
+    .floor-swatch .tex-label { position:absolute; bottom:0; left:0; right:0; font-family:var(--mono); font-size:8px; background:rgba(0,0,0,.65); color:#fff; text-align:center; padding:2px 0; }
   </style>
 </head>
 <body>
@@ -630,6 +661,53 @@
     <div class="sidebar-section" style="flex:1">
       <div class="sidebar-label">Log</div>
       <div class="log" id="log"></div>
+    </div>
+
+    <!-- ── View Mode ── -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Mode</div>
+      <div class="mode-bar">
+        <button class="mode-btn active" id="mode-blueprint" onclick="setMode('blueprint')">◈ BLUEPRINT</button>
+        <button class="mode-btn" id="mode-realistic" onclick="setMode('realistic')">◉ REALISTIC</button>
+      </div>
+    </div>
+
+    <!-- ── Material Editor ── -->
+    <div class="sidebar-section" id="mat-panel">
+      <div class="sidebar-label">Materials</div>
+
+      <!-- Scope: all walls vs selection -->
+      <div class="mat-scope-row">
+        <button class="mat-scope-btn active" id="scope-all" onclick="setScope('all')">ALL WALLS</button>
+        <button class="mat-scope-btn" id="scope-sel" onclick="setScope('select')">SELECT</button>
+      </div>
+
+      <!-- Selection hint (shown in select mode) -->
+      <div class="sel-hint" id="sel-hint">Click walls in viewport to select.<br><span id="sel-count">0</span> wall(s) selected.</div>
+
+      <!-- Wall texture swatches -->
+      <div class="sidebar-label" style="margin-top:4px">Wall Finish</div>
+      <div class="tex-grid" id="wall-tex-grid"></div>
+
+      <!-- Custom solid colour -->
+      <div class="color-row">
+        <label>Custom colour</label>
+        <input type="color" id="custom-color" value="#c8b89a" oninput="selectCustomColor(this.value)" />
+      </div>
+
+      <!-- Tile size -->
+      <div class="control-group">
+        <div class="control-label">Tile size (m) <span class="val" id="tile-val">1.0</span></div>
+        <input type="range" id="tile-size" min="0.3" max="4" step="0.1" value="1.0"
+          oninput="document.getElementById('tile-val').textContent=parseFloat(this.value).toFixed(1); applyPendingMaterial()" />
+      </div>
+
+      <button class="btn apply" onclick="applyPendingMaterial()">▶ APPLY</button>
+      <button class="btn reset-mat" onclick="resetMaterials()">↺ RESET ALL</button>
+
+      <!-- Floor finish -->
+      <div class="sidebar-label" style="margin-top:8px">Floor Finish</div>
+      <div class="floor-grid" id="floor-tex-grid"></div>
     </div>
 
   </aside>
@@ -913,6 +991,517 @@ function createLabelSprite(room) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Procedural texture generators (no external URLs needed)
+// Each returns a THREE.CanvasTexture drawn with 2D canvas API.
+// ─────────────────────────────────────────────────────────────────────────────
+function makeTex(size, drawFn) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  drawFn(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+const WALL_TEXTURES = [
+  {
+    id: 'plaster', label: 'PLASTER',
+    color: 0xd4c9b8,
+    gen: (ctx, s) => {
+      ctx.fillStyle = '#d4c9b8';  ctx.fillRect(0,0,s,s);
+      for (let i=0;i<800;i++) {
+        ctx.fillStyle = `rgba(${180+Math.random()*40|0},${165+Math.random()*40|0},${140+Math.random()*30|0},0.18)`;
+        ctx.fillRect(Math.random()*s, Math.random()*s, Math.random()*6+1, Math.random()*6+1);
+      }
+    }
+  },
+  {
+    id: 'brick', label: 'BRICK',
+    color: 0x9e4c2e,
+    gen: (ctx, s) => {
+      ctx.fillStyle = '#9e4c2e'; ctx.fillRect(0,0,s,s);
+      const bw=64,bh=32,gap=4;
+      ctx.strokeStyle='#6b3520'; ctx.lineWidth=gap;
+      for (let row=0;row*bh<s;row++) {
+        const off = (row%2)*bw/2;
+        for (let col=-1;col*bw<s;col++) {
+          const x=(col*bw+off), y=row*bh;
+          ctx.strokeRect(x+gap/2,y+gap/2,bw-gap,bh-gap);
+          ctx.fillStyle=`hsl(${14+Math.random()*10},${55+Math.random()*15}%,${35+Math.random()*10}%)`;
+          ctx.fillRect(x+gap,y+gap,bw-gap*2,bh-gap*2);
+        }
+      }
+    }
+  },
+  {
+    id: 'concrete', label: 'CONCRETE',
+    color: 0x8a8a82,
+    gen: (ctx, s) => {
+      ctx.fillStyle = '#8a8a82'; ctx.fillRect(0,0,s,s);
+      for (let i=0;i<1200;i++) {
+        const v = 100+Math.random()*80|0;
+        ctx.fillStyle = `rgba(${v},${v},${v},0.15)`;
+        ctx.fillRect(Math.random()*s,Math.random()*s,Math.random()*8+1,Math.random()*3+1);
+      }
+      ctx.strokeStyle='rgba(60,60,60,0.12)'; ctx.lineWidth=1;
+      for (let y=0;y<s;y+=s/4) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(s,y); ctx.stroke(); }
+    }
+  },
+  {
+    id: 'wood-panel', label: 'WOOD',
+    color: 0x8b5e3c,
+    gen: (ctx, s) => {
+      ctx.fillStyle='#8b5e3c'; ctx.fillRect(0,0,s,s);
+      const pw=s/6;
+      for (let i=0;i<6;i++) {
+        const hue=24+Math.random()*10, light=28+Math.random()*12;
+        ctx.fillStyle=`hsl(${hue},55%,${light}%)`;
+        ctx.fillRect(i*pw,0,pw-2,s);
+        for (let j=0;j<12;j++) {
+          ctx.strokeStyle=`rgba(${80+Math.random()*40|0},${40+Math.random()*20|0},${10+Math.random()*10|0},0.25)`;
+          ctx.lineWidth=Math.random()*2+0.5;
+          ctx.beginPath(); ctx.moveTo(i*pw+Math.random()*pw,0); ctx.lineTo(i*pw+Math.random()*pw,s); ctx.stroke();
+        }
+      }
+    }
+  },
+  {
+    id: 'marble', label: 'MARBLE',
+    color: 0xe8e0d0,
+    gen: (ctx, s) => {
+      ctx.fillStyle='#e8e0d0'; ctx.fillRect(0,0,s,s);
+      for (let i=0;i<6;i++) {
+        ctx.strokeStyle=`rgba(${150+Math.random()*60|0},${140+Math.random()*50|0},${130+Math.random()*40|0},0.35)`;
+        ctx.lineWidth=Math.random()*3+1;
+        ctx.beginPath();
+        ctx.moveTo(Math.random()*s,Math.random()*s);
+        for (let j=0;j<4;j++) ctx.bezierCurveTo(Math.random()*s,Math.random()*s,Math.random()*s,Math.random()*s,Math.random()*s,Math.random()*s);
+        ctx.stroke();
+      }
+    }
+  },
+  {
+    id: 'tile-white', label: 'W.TILE',
+    color: 0xf0ede8,
+    gen: (ctx, s) => {
+      ctx.fillStyle='#f0ede8'; ctx.fillRect(0,0,s,s);
+      const ts=s/4;
+      ctx.strokeStyle='#cccccc'; ctx.lineWidth=3;
+      for (let x=0;x<=s;x+=ts) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,s); ctx.stroke(); }
+      for (let y=0;y<=s;y+=ts) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(s,y); ctx.stroke(); }
+    }
+  },
+];
+
+const FLOOR_TEXTURES = [
+  {
+    id: 'floor-tile', label: 'TILE',
+    gen: (ctx, s) => {
+      ctx.fillStyle='#c8b89a'; ctx.fillRect(0,0,s,s);
+      const ts=s/4;
+      ctx.strokeStyle='#a09070'; ctx.lineWidth=3;
+      for (let x=0;x<=s;x+=ts) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,s); ctx.stroke(); }
+      for (let y=0;y<=s;y+=ts) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(s,y); ctx.stroke(); }
+      for (let r=0;r<4;r++) for (let c=0;c<4;c++) {
+        const v=170+Math.random()*30|0;
+        ctx.fillStyle=`rgba(${v},${v-20},${v-40},0.15)`;
+        ctx.fillRect(c*ts+2,r*ts+2,ts-4,ts-4);
+      }
+    }
+  },
+  {
+    id: 'floor-wood', label: 'PARQUET',
+    gen: (ctx, s) => {
+      ctx.fillStyle='#a0723a'; ctx.fillRect(0,0,s,s);
+      const pw=s/8, ph=s/3;
+      for (let c=0;c<8;c++) for (let r=0;r<3;r++) {
+        const off=(r%2)*pw/2;
+        ctx.fillStyle=`hsl(28,${45+Math.random()*20}%,${30+Math.random()*15}%)`;
+        ctx.fillRect(c*pw+off,r*ph+1,pw-2,ph-2);
+        ctx.strokeStyle='rgba(60,30,0,0.3)'; ctx.lineWidth=1.5;
+        ctx.strokeRect(c*pw+off+1,r*ph+2,pw-4,ph-4);
+      }
+    }
+  },
+  {
+    id: 'floor-marble', label: 'MARBLE',
+    gen: (ctx, s) => {
+      ctx.fillStyle='#ddd8cc'; ctx.fillRect(0,0,s,s);
+      const ts=s/2;
+      ctx.strokeStyle='#bbb5a8'; ctx.lineWidth=4;
+      for (let x=0;x<=s;x+=ts) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,s); ctx.stroke(); }
+      for (let y=0;y<=s;y+=ts) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(s,y); ctx.stroke(); }
+      for (let i=0;i<4;i++) {
+        ctx.strokeStyle=`rgba(160,150,130,0.2)`; ctx.lineWidth=Math.random()*2+0.5;
+        ctx.beginPath(); ctx.moveTo(Math.random()*s,Math.random()*s);
+        ctx.bezierCurveTo(Math.random()*s,Math.random()*s,Math.random()*s,Math.random()*s,Math.random()*s,Math.random()*s);
+        ctx.stroke();
+      }
+    }
+  },
+  {
+    id: 'floor-concrete', label: 'CONCRETE',
+    gen: (ctx, s) => {
+      ctx.fillStyle='#7a7a72'; ctx.fillRect(0,0,s,s);
+      for (let i=0;i<800;i++) {
+        const v=90+Math.random()*60|0;
+        ctx.fillStyle=`rgba(${v},${v},${v},0.2)`;
+        ctx.fillRect(Math.random()*s,Math.random()*s,Math.random()*6+1,Math.random()*3+1);
+      }
+    }
+  },
+  {
+    id: 'floor-stone', label: 'STONE',
+    gen: (ctx, s) => {
+      ctx.fillStyle='#9a9488'; ctx.fillRect(0,0,s,s);
+      for (let i=0;i<20;i++) {
+        const x=Math.random()*s, y=Math.random()*s;
+        const w=30+Math.random()*50, h=20+Math.random()*40;
+        ctx.fillStyle=`hsl(35,${8+Math.random()*12}%,${48+Math.random()*14}%)`;
+        ctx.beginPath(); ctx.ellipse(x,y,w,h,Math.random()*Math.PI,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='rgba(80,75,65,0.4)'; ctx.lineWidth=2; ctx.stroke();
+      }
+    }
+  },
+  {
+    id: 'floor-carpet', label: 'CARPET',
+    gen: (ctx, s) => {
+      ctx.fillStyle='#4a5a7a'; ctx.fillRect(0,0,s,s);
+      for (let i=0;i<2000;i++) {
+        ctx.fillStyle=`rgba(${50+Math.random()*40|0},${70+Math.random()*40|0},${110+Math.random()*40|0},0.4)`;
+        ctx.fillRect(Math.random()*s,Math.random()*s,Math.random()*3+1,Math.random()*3+1);
+      }
+    }
+  },
+];
+
+// Pre-generate textures (done once on load)
+const _wallTexObjs  = WALL_TEXTURES.map(t => ({ ...t, tex: makeTex(256, t.gen) }));
+const _floorTexObjs = FLOOR_TEXTURES.map(t => ({ ...t, tex: makeTex(256, t.gen) }));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Material state
+// ─────────────────────────────────────────────────────────────────────────────
+let _viewMode       = 'blueprint';  // 'blueprint' | 'realistic'
+let _matScope       = 'all';        // 'all' | 'select'
+let _selectedWalls  = new Set();    // Set of wallMesh indices
+let _selectModeOn   = false;
+let _pendingWallTex = null;         // { id, tex } or { color: '#hex' }
+let _pendingFloorTex= null;
+let _selWallTexId   = null;
+let _selFloorTexId  = null;
+
+// Stored per-mesh overrides (survive mode switches)
+// Map: mesh → { tex, color, tileSize } — null means use blueprint default
+const _meshOverrides = new WeakMap();
+
+// Blueprint base materials (restored when switching back)
+const _blueprintMats = new WeakMap();
+let   _floorBlueprintMat = null;
+let   _floorRealisticMat = null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Build texture swatches in sidebar
+// ─────────────────────────────────────────────────────────────────────────────
+function buildSwatches() {
+  const wg = document.getElementById('wall-tex-grid');
+  const fg = document.getElementById('floor-tex-grid');
+  wg.innerHTML = fg.innerHTML = '';
+
+  _wallTexObjs.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'tex-swatch';
+    div.dataset.id = t.id;
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    t.gen(c.getContext('2d'), 64);
+    div.appendChild(c);
+    const lbl = document.createElement('div');
+    lbl.className = 'tex-label'; lbl.textContent = t.label;
+    div.appendChild(lbl);
+    div.onclick = () => selectWallTex(t.id);
+    wg.appendChild(div);
+  });
+
+  _floorTexObjs.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'floor-swatch';
+    div.dataset.id = t.id;
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    t.gen(c.getContext('2d'), 64);
+    div.appendChild(c);
+    const lbl = document.createElement('div');
+    lbl.className = 'tex-label'; lbl.textContent = t.label;
+    div.appendChild(lbl);
+    div.onclick = () => selectFloorTex(t.id);
+    fg.appendChild(div);
+  });
+}
+
+function selectWallTex(id) {
+  _selWallTexId = id;
+  _pendingWallTex = { id };
+  document.querySelectorAll('.tex-swatch').forEach(el =>
+    el.classList.toggle('selected', el.dataset.id === id));
+  document.getElementById('custom-color').value = '#c8b89a'; // reset colour picker visual
+  if (_viewMode === 'realistic') applyPendingMaterial();
+}
+
+function selectCustomColor(hex) {
+  _selWallTexId = null;
+  _pendingWallTex = { color: hex };
+  document.querySelectorAll('.tex-swatch').forEach(el => el.classList.remove('selected'));
+  if (_viewMode === 'realistic') applyPendingMaterial();
+}
+
+function selectFloorTex(id) {
+  _selFloorTexId = id;
+  _pendingFloorTex = { id };
+  document.querySelectorAll('.floor-swatch').forEach(el =>
+    el.classList.toggle('selected', el.dataset.id === id));
+  if (_viewMode === 'realistic') applyFloorTexture();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mode switching: blueprint ↔ realistic
+// ─────────────────────────────────────────────────────────────────────────────
+function setMode(mode) {
+  _viewMode = mode;
+  document.getElementById('mode-blueprint').classList.toggle('active', mode === 'blueprint');
+  document.getElementById('mode-realistic').classList.toggle('active', mode === 'realistic');
+
+  if (mode === 'blueprint') {
+    applyBlueprintMode();
+  } else {
+    applyRealisticMode();
+  }
+  log(`Mode → ${mode}`, 'info');
+}
+
+function applyBlueprintMode() {
+  // Restore original blueprint materials on all wall meshes
+  wallMeshes.forEach(mesh => {
+    const orig = _blueprintMats.get(mesh);
+    if (orig) { mesh.material = orig; mesh.material.needsUpdate = true; }
+  });
+  wireMeshes.forEach(m => { m.visible = showWire; });
+
+  // Floor — restore dark blueprint floor
+  if (floorMesh && _floorBlueprintMat) {
+    floorMesh.material = _floorBlueprintMat;
+    floorMesh.material.needsUpdate = true;
+  }
+  scene.background = new THREE.Color(0x0a0c0f);
+  scene.fog = new THREE.Fog(0x0a0c0f, 40, 120);
+}
+
+function applyRealisticMode() {
+  // Switch scene to daylight
+  scene.background = new THREE.Color(0xd4e8f0);
+  scene.fog = new THREE.Fog(0xd4e8f0, 60, 180);
+
+  // Apply stored overrides or default realistic material to each mesh
+  wallMeshes.forEach(mesh => {
+    const over = _meshOverrides.get(mesh);
+    if (over) {
+      _applyOverrideToMesh(mesh, over);
+    } else {
+      _applyDefaultRealistic(mesh);
+    }
+  });
+
+  // Wireframes less prominent in realistic mode
+  wireMeshes.forEach(m => { m.visible = false; });
+
+  // Floor
+  applyFloorTexture();
+}
+
+function _applyDefaultRealistic(mesh) {
+  const thick = mesh.userData.thickness || 0.2;
+  const isOuter = mesh.userData.is_outer;
+  const mat = new THREE.MeshPhongMaterial({
+    color:     isOuter ? 0xd4c9b8 : 0xe8e2d8,
+    emissive:  new THREE.Color(0.04, 0.04, 0.04),
+    specular:  new THREE.Color(0.1, 0.1, 0.1),
+    shininess: isOuter ? 18 : 12,
+  });
+  mesh.material = mat;
+  mesh.material.needsUpdate = true;
+}
+
+function _applyOverrideToMesh(mesh, over) {
+  const tileSize = over.tileSize || parseFloat(document.getElementById('tile-size').value) || 1.0;
+  if (over.color) {
+    mesh.material = new THREE.MeshPhongMaterial({
+      color: new THREE.Color(over.color),
+      emissive: new THREE.Color(0.03, 0.03, 0.03),
+      specular: new THREE.Color(0.08, 0.08, 0.08),
+      shininess: 12,
+    });
+  } else if (over.texId) {
+    const texObj = _wallTexObjs.find(t => t.id === over.texId);
+    if (texObj) {
+      const cloned = texObj.tex.clone();
+      cloned.wrapS = cloned.wrapT = THREE.RepeatWrapping;
+      const w = mesh.geometry.parameters.width;
+      const h = mesh.geometry.parameters.height;
+      cloned.repeat.set(w / tileSize, h / tileSize);
+      cloned.needsUpdate = true;
+      mesh.material = new THREE.MeshPhongMaterial({
+        map:       cloned,
+        emissive:  new THREE.Color(0.02, 0.02, 0.02),
+        specular:  new THREE.Color(0.1, 0.1, 0.1),
+        shininess: 15,
+      });
+    }
+  }
+  mesh.material.needsUpdate = true;
+}
+
+function applyFloorTexture() {
+  if (!floorMesh) return;
+  const texObj = _pendingFloorTex
+    ? _floorTexObjs.find(t => t.id === _pendingFloorTex.id)
+    : _floorTexObjs[0];   // default to tile
+  if (!texObj) return;
+
+  const bounds = floorMesh.geometry.parameters;
+  const tileSize = 1.5;
+  const cloned = texObj.tex.clone();
+  cloned.wrapS = cloned.wrapT = THREE.RepeatWrapping;
+  cloned.repeat.set(bounds.width / tileSize, bounds.height / tileSize);
+  cloned.needsUpdate = true;
+
+  floorMesh.material = new THREE.MeshPhongMaterial({
+    map:       cloned,
+    emissive:  new THREE.Color(0.04, 0.04, 0.04),
+    specular:  new THREE.Color(0.08, 0.08, 0.08),
+    shininess: 25,
+    side:      THREE.DoubleSide,
+  });
+  floorMesh.material.needsUpdate = true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Material scope: all vs select
+// ─────────────────────────────────────────────────────────────────────────────
+function setScope(scope) {
+  _matScope = scope;
+  document.getElementById('scope-all').classList.toggle('active', scope === 'all');
+  document.getElementById('scope-sel').classList.toggle('active', scope === 'select');
+  _selectModeOn = (scope === 'select');
+  document.getElementById('sel-hint').classList.toggle('active', _selectModeOn);
+  if (!_selectModeOn) { clearSelection(); }
+}
+
+function clearSelection() {
+  _selectedWalls.clear();
+  wallMeshes.forEach((mesh, i) => {
+    mesh.userData.selected = false;
+    // Remove selection highlight
+    if (mesh.userData._selectionOutline) {
+      scene.remove(mesh.userData._selectionOutline);
+      mesh.userData._selectionOutline = null;
+    }
+  });
+  updateSelCount();
+}
+
+function updateSelCount() {
+  document.getElementById('sel-count').textContent = _selectedWalls.size;
+}
+
+// Wall click selection (raycasting)
+function handleWallClick(event) {
+  if (!_selectModeOn || !modelLoaded) return;
+
+  const container = document.getElementById('canvas-container');
+  const rect = container.getBoundingClientRect();
+  const mouse = new THREE.Vector2(
+    ((event.clientX - rect.left) / rect.width)  * 2 - 1,
+    -((event.clientY - rect.top)  / rect.height) * 2 + 1
+  );
+
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(wallMeshes);
+  if (!hits.length) return;
+
+  const mesh = hits[0].object;
+  const idx  = wallMeshes.indexOf(mesh);
+  if (idx === -1) return;
+
+  if (_selectedWalls.has(idx)) {
+    // Deselect
+    _selectedWalls.delete(idx);
+    mesh.userData.selected = false;
+    if (mesh.userData._selectionOutline) {
+      scene.remove(mesh.userData._selectionOutline);
+      mesh.userData._selectionOutline = null;
+    }
+  } else {
+    // Select — add orange outline
+    _selectedWalls.add(idx);
+    mesh.userData.selected = true;
+    const outline = new THREE.LineSegments(
+      new THREE.EdgesGeometry(mesh.geometry),
+      new THREE.LineBasicMaterial({ color: 0xff6b35, linewidth: 2 })
+    );
+    outline.position.copy(mesh.position);
+    outline.rotation.copy(mesh.rotation);
+    outline.scale.multiplyScalar(1.002);
+    scene.add(outline);
+    mesh.userData._selectionOutline = outline;
+  }
+  updateSelCount();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Apply material to walls
+// ─────────────────────────────────────────────────────────────────────────────
+function applyPendingMaterial() {
+  if (_viewMode !== 'realistic') {
+    toast('Switch to REALISTIC mode first', 'warn', 3000);
+    return;
+  }
+  if (!_pendingWallTex) {
+    toast('Select a wall finish first', 'warn', 3000);
+    return;
+  }
+
+  const tileSize = parseFloat(document.getElementById('tile-size').value) || 1.0;
+  const targets  = _matScope === 'select' && _selectedWalls.size > 0
+    ? [..._selectedWalls].map(i => wallMeshes[i])
+    : wallMeshes;
+
+  const over = _pendingWallTex.color
+    ? { color: _pendingWallTex.color, tileSize }
+    : { texId: _pendingWallTex.id,   tileSize };
+
+  targets.forEach(mesh => {
+    _meshOverrides.set(mesh, over);
+    _applyOverrideToMesh(mesh, over);
+  });
+
+  log(`Applied ${over.texId || over.color} to ${targets.length} wall(s)`, 'ok');
+}
+
+function resetMaterials() {
+  wallMeshes.forEach(mesh => {
+    _meshOverrides.delete(mesh);
+    if (_viewMode === 'realistic') _applyDefaultRealistic(mesh);
+    else {
+      const orig = _blueprintMats.get(mesh);
+      if (orig) { mesh.material = orig; mesh.material.needsUpdate = true; }
+    }
+  });
+  clearSelection();
+  log('Materials reset', 'info');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Build 3D model from API response
 // ─────────────────────────────────────────────────────────────────────────────
 function buildModel(data) {
@@ -920,85 +1509,58 @@ function buildModel(data) {
   [...wallMeshes, ...wireMeshes].forEach(m => scene.remove(m));
   if (floorMesh) scene.remove(floorMesh);
   wallMeshes = []; wireMeshes = [];
+  _selectedWalls.clear();
 
   const model = data.model;
   if (!model) { log('No model data in response', 'err'); return; }
 
-  const floorMat = new THREE.MeshPhongMaterial({
-    color: 0x0d1117,
-    emissive: 0x050a0f,
-    transparent: true,
-    opacity: 0.6,
-    side: THREE.DoubleSide,
+  // Blueprint floor material (saved for mode-switching)
+  _floorBlueprintMat = new THREE.MeshPhongMaterial({
+    color: 0x0d1117, emissive: 0x050a0f,
+    transparent: true, opacity: 0.6, side: THREE.DoubleSide,
   });
 
-  // ── Per-room colour palette (cycles if more rooms than colours) ──────────
-  // Each room gets a distinct hue; walls tagged with room_id use that hue.
-  // We keep colours dark/desaturated so they read as architectural, not toy.
-  const ROOM_PALETTE = [
-    { wall: 0x1a2f3a, wire: 0x00e5ff },  // cyan   — default / R1
-    { wall: 0x2a2218, wire: 0xff9944 },  // amber  — R2
-    { wall: 0x1e2a1e, wire: 0x44dd88 },  // green  — R3
-    { wall: 0x2a1e2a, wire: 0xcc66ff },  // purple — R4
-    { wall: 0x2a2218, wire: 0xffdd44 },  // yellow — R5
-    { wall: 0x1a2535, wire: 0x4488ff },  // blue   — R6
-    { wall: 0x2a1a1a, wire: 0xff4466 },  // red    — R7
-  ];
+  // ── Classify walls by thickness (relative, no hardcoded values) ────────────
+  const allThicknesses = model.walls.map(w => w.dimensions.depth || 0.2);
+  allThicknesses.sort((a, b) => a - b);
+  const medianThick    = allThicknesses[Math.floor(allThicknesses.length / 2)] || 0.2;
+  const outerThreshold = medianThick * 1.15;
 
-  // Build room_id → palette index map from model.rooms order
-  const roomPaletteMap = {};
-  if (model.rooms) {
-    model.rooms.forEach((r, i) => {
-      roomPaletteMap[r.id] = i % ROOM_PALETTE.length;
-    });
-  }
-
-  // Reference outer wall thickness for emissive brightness scaling
-  // Outer walls are thicker → brighter emissive → visually heavier
-  const OUTER_THICK_REF = 0.27;  // metres — typical exterior wall at 33ppm
-
-  // ── Build walls ───────────────────────────────────────────────────────────
+  // ── Build walls ────────────────────────────────────────────────────────────
   model.walls.forEach(w => {
-    const geo = new THREE.BoxGeometry(w.dimensions.width, w.dimensions.height, w.dimensions.depth);
-
-    // Pick palette by room_id, fall back to index 0
-    const palIdx = (w.room_id && roomPaletteMap[w.room_id] !== undefined)
-      ? roomPaletteMap[w.room_id] : 0;
-    const pal = ROOM_PALETTE[palIdx];
-
-    // Emissive scales with thickness: outer walls (0.27m) glow more than inner (0.18m)
+    const geo   = new THREE.BoxGeometry(w.dimensions.width, w.dimensions.height, w.dimensions.depth);
     const thick = w.dimensions.depth || 0.2;
-    const thickRatio = Math.min(thick / OUTER_THICK_REF, 1.4);
-    const emR = Math.round(0x05 * thickRatio);
-    const emG = Math.round(0x0d * thickRatio);
-    const emB = Math.round(0x1a * thickRatio);
+    const isOuter = thick >= outerThreshold;
 
-    const mat = new THREE.MeshPhongMaterial({
-      color:     pal.wall,
-      emissive:  new THREE.Color(emR / 255, emG / 255, emB / 255),
-      specular:  pal.wire,
-      shininess: 28 + Math.round(thickRatio * 12),  // outer = shinier
-    });
+    // Blueprint material
+    const bpMat = new THREE.MeshPhongMaterial(
+      isOuter ? {
+        color: 0x0d2233, emissive: new THREE.Color(0.02,0.08,0.14),
+        specular: 0x00e5ff, shininess: 45,
+      } : {
+        color: 0x1a3d55, emissive: new THREE.Color(0.01,0.04,0.07),
+        specular: 0x44aacc, shininess: 20,
+        transparent: true, opacity: 0.85,
+      }
+    );
 
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = new THREE.Mesh(geo, bpMat);
     mesh.position.set(w.position.x, w.position.y, w.position.z);
     mesh.rotation.y = w.rotation_y;
-    mesh.castShadow = true;
+    mesh.castShadow  = true;
     mesh.receiveShadow = true;
-    // Stash for texture system: iterate wallMeshes and filter by room_id
-    mesh.userData = {
-      room_id:    w.room_id    || null,
-      room_color: w.room_color || null,
-      thickness:  thick,
-      pal_idx:    palIdx,
-    };
+    mesh.userData = { room_id: w.room_id || null, thickness: thick, is_outer: isOuter };
+
+    // Save blueprint material for restoring later
+    _blueprintMats.set(mesh, bpMat);
+
     scene.add(mesh);
     wallMeshes.push(mesh);
 
-    // Wireframe — use room accent colour
+    // Wireframe
     const edges = new THREE.EdgesGeometry(geo);
-    const wire = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
-      color: pal.wire, transparent: true, opacity: 0.45,
+    const wire  = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+      color: isOuter ? 0x00e5ff : 0x2288aa, transparent: true, opacity: isOuter ? 0.5 : 0.25,
     }));
     wire.position.copy(mesh.position);
     wire.rotation.copy(mesh.rotation);
@@ -1010,7 +1572,7 @@ function buildModel(data) {
   if (model.floors && model.floors.length > 0) {
     const f = model.floors[0];
     const fgeo = new THREE.PlaneGeometry(f.dimensions.width, f.dimensions.depth);
-    floorMesh = new THREE.Mesh(fgeo, floorMat);
+    floorMesh = new THREE.Mesh(fgeo, _floorBlueprintMat);
     floorMesh.rotation.x = -Math.PI / 2;
     floorMesh.position.set(f.position.x, 0.001, f.position.z);
     floorMesh.receiveShadow = true;
@@ -1156,52 +1718,6 @@ function buildModel(data) {
   if (data.warnings?.length) {
     data.warnings.forEach(w => log('⚠ ' + w, 'info'));
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Texture system — apply per-room image textures to wall meshes
-// Usage: applyRoomTexture('room_1', 'textures/brick.jpg', 1.0)
-// Call reapplyTextures() after loading to refresh all meshes.
-// ─────────────────────────────────────────────────────────────────────────────
-const _texLoader   = new THREE.TextureLoader();
-const _roomTextures = {};   // room_id → THREE.Texture
-
-function applyRoomTexture(roomId, url, tileSizeMetres = 1.0) {
-  _texLoader.load(url, tex => {
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.userData = { tileSize: tileSizeMetres };
-    _roomTextures[roomId] = tex;
-    _applyTextureToRoom(roomId, tex);
-    log(`Texture loaded → ${roomId}`, 'ok');
-  }, undefined, () => log(`Texture load failed: ${url}`, 'err'));
-}
-
-function _applyTextureToRoom(roomId, tex) {
-  wallMeshes.forEach(mesh => {
-    if (mesh.userData.room_id !== roomId) return;
-    const w = mesh.geometry.parameters.width;
-    const h = mesh.geometry.parameters.height;
-    const ts = tex.userData.tileSize || 1.0;
-    const t = tex.clone();
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(w / ts, h / ts);
-    t.needsUpdate = true;
-    mesh.material.map = t;
-    mesh.material.needsUpdate = true;
-  });
-}
-
-function clearRoomTexture(roomId) {
-  delete _roomTextures[roomId];
-  wallMeshes.forEach(mesh => {
-    if (mesh.userData.room_id !== roomId) return;
-    mesh.material.map = null;
-    mesh.material.needsUpdate = true;
-  });
-}
-
-function reapplyTextures() {
-  Object.entries(_roomTextures).forEach(([id, tex]) => _applyTextureToRoom(id, tex));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1439,6 +1955,11 @@ document.addEventListener('keydown', e => {
 
 initThree();
 checkAPI();
+buildSwatches();
+
+// Wall selection click — attached to canvas container
+document.getElementById('canvas-container').addEventListener('click', handleWallClick);
+
 log('Viewer ready — upload a DXF to begin', 'ok');
 log('Shortcuts: 1-4 views · S/W/F/L toggles · Space process · R reset', 'info');
 </script>

@@ -1,7 +1,7 @@
 # LEARNMAP — Floor Plan 3D Visualizer
 
 > What we've learned through trial and error. Read before making any change.
-> This is the accumulated knowledge of 4+ sessions of debugging.
+> This is the accumulated knowledge of 5+ sessions of debugging.
 
 ---
 
@@ -35,7 +35,7 @@ PNG/JPG/PDF → raster_parser.py → ParsedGeometry
 - Larger screenshot: ~130px gaps similarly detected
 - **Fallback PPM=65 is only used when tick detection fails**
 
-### Dynamic Border Crop (last fix)
+### Dynamic Border Crop
 - `_detect_border_crop()`: scans inward from each edge until green coverage < 10%
 - For fp4.png (3px green bar): returns ~17px → outer walls at y=24 are preserved ✓
 - For large screenshots (18px green bar): returns ~26px → same behavior ✓
@@ -44,13 +44,11 @@ PNG/JPG/PDF → raster_parser.py → ParsedGeometry
 ### Green Mask Suppression
 - `GREEN_DIFF=22`: (G-R > 22) AND (G-B > 22) correctly identifies annotation pixels
 - Dilate by 4px catches fringe anti-aliased green pixels
-- This removes dimension lines, tick marks, and annotation text from wall detection
 
 ### Wall Segmentation Range
 - WALL_LO=82, WALL_HI=148 (gray range for wall pixels)
 - ROOM_LO=153, ROOM_HI=244 (gray range for room floor pixels)
-- These thresholds work for both dark brown walls (fp4, gray≈107-120) and gray CAD walls
-- The gap between WALL_HI=148 and ROOM_LO=153 is intentional — catches neither
+- The gap between WALL_HI=148 and ROOM_LO=153 is intentional
 
 ### Hough + Merge Pipeline
 - MERGE_GAP=60: bridges doorway gaps (~50px at 33ppm or ~25px at 65ppm)
@@ -58,25 +56,71 @@ PNG/JPG/PDF → raster_parser.py → ParsedGeometry
 - COORD_GROUP_TOL=11: groups parallel double-edges into one centerline
 - DEDUP_DIST=20: collapses both faces of a thick wall into single centerline
 
-### Inter-Segment Opening Detection (Pass 2)
-- Groups walls by fixed coord (H by y, V by x)
-- Finds gaps between collinear stubs on same line
-- Correctly detects doors that are too wide for MERGE_GAP to bridge
+### Wall Splitting at Junctions (`_split_walls_at_junctions`)
+- Cuts wall A wherever wall B's body physically reaches it
+- Critical gate: `t_b * Lb ∈ [-reach, Lb+reach]` where `reach = wb.thickness/2 + 0.15m`
+  This handles T-junctions (inner wall terminates at outer wall face) correctly
+  without the old hardcoded `t_b ∈ [0.10..0.90]` which broke on non-standard plans
+- Each sub-wall inherits all parent attributes (thickness, height, layer, paired, confidence)
+- Must run BEFORE opening grouping — openings reference wall_idx which changes after split
 
-### T-Junction Opening Detection (Pass 3)
-- Finds doors between perpendicular wall endpoints within WALL_HALF_PX=20
-- EDGE_GUARD=20 prevents tick marks at image corners from becoming phantom doors
-- Correctly handles all 4 T-junction orientations
+### Opening Re-projection After Wall Splitting (`_reproj_openings`)
+After `_split_walls_at_junctions`, wall indices change. Two fields need updating:
+- `wall_idx`: which sub-wall the opening belongs to
+- `t_center`: fraction along the new (shorter) sub-wall
 
-### Pipeline _build_raster_openings
-- Converts pixel-space openings to world-space Opening objects
-- Intra-segment: matched to nearest wall by perpendicular distance
-- Inter-segment (t_center==-1.0): freestanding, matched by orientation to nearest wall
+**What does NOT need updating:**
+- `t_start`, `t_end`: these don't exist on the `Opening` dataclass.
+  `split_wall_at_openings()` in `opening_detector.py` derives them internally from
+  `t_center ± (width/2) / wall_length`. Never try to dc_replace these.
 
-### Autocrop
-- Finds white floor plan panel inside UI screenshots
-- Uses fill ratio (fraction of bright pixels) to select the floor plan bounding box
-- Handles dark 3D viewer background with cyan walls
+**The window-pushed-to-side bug (fixed):**
+- Root cause: `_reproj_openings` v1 only updated `wall_idx`, left `t_center` as a fraction
+  of the original full-length wall. On the shorter sub-wall, `t_center=0.85` means
+  85% along a 5m sub-wall = 4.25m, but 85% of the original 10m wall meant 8.5m.
+- Fix: recompute `t_center` from the opening's world position `(op.x, op.y)` projected
+  onto the matched sub-wall's [0..1] range.
+
+**The TypeError crash (fixed):**
+- `_reproj_openings` v2 tried to `dc_replace(op, t_start=..., t_end=...)` which don't
+  exist as fields on the Opening dataclass → `TypeError: unexpected keyword argument`
+- Fix: only `dc_replace(op, wall_idx=best_idx, t_center=round(best_t, 4))`
+
+### Door Leaf Positioning Fix
+Old bug: `_door_leaf()` passed `rot_y` (Three.js Y-rotation angle) to `math.cos/sin`
+for world-space positioning. This is wrong — Three.js rotation_y ≠ world-space angle.
+Fix: use wall unit vector `(ux, uy)` and perpendicular `(nx, ny)` directly from the wall
+start/end points. Swing travel direction rotated using the wall's own coordinate frame.
+
+### Relative Thickness Classification (viewer)
+Old approach: hardcoded threshold values broke for floor plans with different PPM.
+Fix: use median of all wall thicknesses as the split point.
+`outerThreshold = medianThick * 1.15` — 15% above median handles raster measurement noise.
+This works at any PPM/scale without calibration.
+
+### Procedural Textures (no external files)
+All textures are generated via `HTMLCanvasElement` + 2D canvas API → `THREE.CanvasTexture`.
+Advantages:
+- No HTTP requests, no CORS issues, no missing texture errors
+- Works completely offline
+- Textures scale correctly via `tex.repeat.set(w/tileSize, h/tileSize)`
+- Can be regenerated at any resolution by changing the `size` parameter to `makeTex()`
+
+### Blueprint ↔ Realistic Mode Switching
+Key pattern: store the original blueprint material in a WeakMap keyed on the mesh
+(`_blueprintMats`) before any mode switch. On switch back, restore from this map.
+This avoids having to rebuild the entire model to restore the original appearance.
+WeakMap is correct here because mesh objects are garbage-collected when the model is
+cleared, so there's no memory leak from keeping references.
+
+### Wall Selection via Raycasting
+```javascript
+raycaster.setFromCamera(mouse, camera);
+const hits = raycaster.intersectObjects(wallMeshes);
+```
+Selection highlight: add a `THREE.LineSegments(EdgesGeometry, orange material)` as a
+separate object positioned/rotated identically to the wall, scaled by 1.002 to avoid
+z-fighting. Store it in `mesh.userData._selectionOutline` so it can be removed on deselect.
 
 ---
 
@@ -84,40 +128,31 @@ PNG/JPG/PDF → raster_parser.py → ParsedGeometry
 
 ### Fixed BORDER_CROP_PX=52 ← DON'T USE
 - Was calibrated for 670px screenshots
-- For fp4.png (355px), it removed y=0-52, cutting off outer walls at y=24-32
-- **The dynamic `_detect_border_crop()` replaced this entirely**
-
-### Fixed BORDER_CROP_PX=36 ← DON'T USE
-- Better than 52 but still too aggressive for small/tight floor plans
-- Tick marks at y=36-48 would leak through
+- For fp4.png (355px), cut off outer walls at y=24-32
 
 ### _compute_corner_trims (geometry_builder) ← REVERTED
 - Concept: trim wall endpoints at junctions to prevent overlap
 - Problem: perp tolerance of 0.12m was too tight for raster endpoints (drift ±0.15m)
-- It was trimming walls that didn't actually overlap AND missing ones that did
-- Result: walls shorter than they should be, creating gaps at junctions
+- Result: walls shorter than needed, creating gaps at junctions
 - **Replacement: `_compute_wall_extensions()` extending outward instead**
-- Key insight: better to overshoot (extend) than undershoot (trim)
 
 ### SimpleDraw Parser ← REMOVED
-- Attempted to handle black-on-white floor plans (thick=exterior, thin=interior, arc=door)
-- Added `is_simpledraw_format()` detection into pipeline.py routing
-- Caused regressions: 25 inner walls detected for simple plans (arcs survived inner erosion)
+- Caused regressions: 25 inner walls detected for simple plans
 - The main raster pipeline handles both formats adequately when PPM is correct
-- Removed entirely; reverted to original uploads + only PPM fix
 
 ### Hardcoded pixels_per_meter=100 ← FIXED
-- `main.py` had `default=100.0` for pixels_per_meter API parameter
-- The viewer never sent this parameter → API always used 100 as override
-- All dynamic threshold calculations (merge_gap, min_wall) used wrong PPM=100
-- Fix: `default=0.0` (0 = auto-detect), viewer sends `&pixels_per_meter=0`
+- `main.py` had `default=100.0` → all PPM-relative thresholds calculated against wrong scale
+- Fix: `default=0.0`, viewer sends `&pixels_per_meter=0`
 
-### Wall Thickness measurement (SCAN_HALF=30) ← PARTIALLY BROKEN
-- The `_measure_wall_thicknesses()` function exists and is called
-- Bug 1: SCAN_HALF=30 too wide — picks up floor pixels beyond wall body
-- Bug 2: span measurement (`hits[-1]-hits[0]+1`) includes gaps, overestimates
-- Bug 3: Y-flip missing — `ny` in image space should be negated relative to world `ny`
-- **These bugs are documented in NEXT_STEPS_PLAN.md — not yet fixed**
+### t_start / t_end on Opening ← DON'T ADD
+- These fields do NOT exist on the Opening dataclass
+- `split_wall_at_openings()` in `opening_detector.py` derives them from `t_center` internally
+- Adding them via dc_replace causes `TypeError: Opening.__init__() got an unexpected keyword argument`
+- This exact mistake was made twice — do not repeat it
+
+### Hardcoded wall thickness thresholds in viewer ← REPLACED
+- Values like `if (thick > 0.25)` break completely for floor plans at different scales
+- Replaced with median-relative: `outerThreshold = medianThick * 1.15`
 
 ---
 
@@ -145,8 +180,31 @@ Three.js space:
   rotation_y = -atan2(dy, dx) ← negated because Z is flipped
 ```
 
-**This Y-flip is the source of the wall thickness measurement bug** — the perpendicular
-direction `ny` must be negated when converting from world to image space.
+**This Y-flip is required in:**
+- `_measure_wall_thicknesses()` when computing perpendicular direction in image space
+- Any code converting world angle/direction to image pixel scan direction
+- `_door_leaf()` — fixed by using wall unit vector instead of rot_y angle
+
+---
+
+## Opening Dataclass (Critical Reference)
+
+```python
+@dataclass
+class Opening:
+    wall_idx:   int         # wall index (-1 = freestanding)
+    t_center:   float       # position along wall [0,1]
+    width:      float       # opening width in metres
+    kind:       str         # "door" | "window"
+    x:          float = 0.0 # world X position
+    y:          float = 0.0 # world Y position
+    angle:      float = 0.0 # wall angle (radians)
+    swing_side: str   = 'right'
+```
+
+Fields that do NOT exist (never add to dc_replace): `t_start`, `t_end`
+
+The only fields `_reproj_openings` should ever dc_replace: `wall_idx`, `t_center`
 
 ---
 
@@ -162,7 +220,7 @@ For the CAD format with green annotations:
 │  │  ┌─────────────────────────────┐ │  │
 │  │  │  Room floor (gray 153-244) │ │  │  ← tan/beige color
 │  │  │  Door gap (bright >148)    │ │  │  ← detected by brightness scan
-│  │  │  Window: ▓░░░▓ (dark-bright-dark) │  ← detected by symbol scan
+│  │  │  Window: ▓░░░▓ pattern     │ │  │  ← detected by symbol scan (V-walls only, bug)
 │  │  │  Inner wall (gray 82-148)  │ │  │  ← thinner than outer
 │  │  └─────────────────────────────┘ │  │
 │  └───────────────────────────────────┘  │
@@ -177,43 +235,21 @@ For the CAD format with green annotations:
 |-----------|-------------|-------------|----------------------|
 | Outer wall | 9px | 0.271m (27cm) | ✓ realistic exterior |
 | Inner partition | 6px | 0.181m (18cm) | ✓ realistic interior |
-| Bottom outer (H) | 9px | 0.271m (27cm) | ✓ same as top/sides |
 
 The ratio 9:6 = 1.5:1 is consistent across all images of this type.
+`medianThick * 1.15` correctly separates these two groups.
 
 ---
 
-## Opening Detection Logic
+## Key Lessons (ordered by importance)
 
-```
-Pass 1: Intra-segment
-  For each wall [a..b]: scan band ±SCAN_HALF_PX around centerline
-  If brightness > OPENING_BRIGHT: it's a gap
-  Gap width ≤ MAX_DOOR_M → door
-  Gap width MAX_DOOR_M..MAX_WINDOW_M → window
-  Also: _find_window_symbols checks dark|bright|dark pattern for CAD windows
-  CURRENTLY: window symbols only checked on V-walls (bug — fix in Problem 4)
-
-Pass 2: Inter-segment (collinear stubs)
-  Group walls by fixed coordinate
-  For adjacent stubs on same line, check the gap between them
-  If bright span is door/window width → emit as inter-segment opening
-
-Pass 3: T-junction (perpendicular stub meets outer wall)
-  For each wall endpoint, find perpendicular walls within WALL_HALF_PX
-  Scan the gap between endpoint and outer wall face
-  EDGE_GUARD prevents image-edge artifacts from becoming doors
-```
-
----
-
-## Key Lessons
-
-1. **Never use a fixed pixel constant for border crop** — floor plans vary in size and DPI
-2. **Extend, don't trim, at corners** — raster endpoints have ±0.15m drift; trimming creates gaps
-3. **Y-axis flip is required** in any code that converts world coordinates to image coordinates
-4. **PPM must come from the image** — hardcoding 100 blocks everything else
-5. **Thin walls need narrower scan bands** — SCAN_HALF must adapt to wall thickness
-6. **Window symbols must be checked on BOTH H and V walls** — not just V
-7. **T-junction doors live in the dead zone** between outer wall body and inner wall endpoint
-8. **Consecutive run, not span** — span overestimates when the wall body has any gaps
+1. **Never hardcode pixel-space thresholds** — everything must be PPM-relative
+2. **Opening dataclass has no t_start/t_end** — dc_replace only wall_idx and t_center
+3. **Wall splitting must happen before opening grouping** — indices change after split
+4. **t_center must be recomputed after split** — it was a fraction of the old wall length
+5. **Y-axis flip is required** in any world → image coordinate conversion
+6. **Extend, don't trim, at corners** — raster endpoints have ±0.15m drift; trimming creates gaps
+7. **Store blueprint materials before switching modes** — WeakMap on mesh is the right pattern
+8. **Procedural textures beat external files** — no CORS, no missing assets, works offline
+9. **rot_y ≠ world angle** — for world-space vector math, derive (ux,uy) from start/end points
+10. **Window symbols must be checked on BOTH H and V walls** — currently a known bug

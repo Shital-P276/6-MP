@@ -27,6 +27,20 @@ DOOR_LEAF_T   = 0.05  # door leaf thickness (m)
 # Uses sum-of-half-thicknesses + raster drift allowance (set in _compute_wall_extensions).
 CORNER_RASTER_DRIFT = 0.10   # metres of endpoint drift to tolerate for raster walls
 
+# Wall splitting / room assignment
+SNAP_TOL = 0.35   # max perp distance for a T-endpoint to be considered "on" a wall
+
+# Room colour palette — dark base colours, one per room (cycles for >7 rooms)
+_ROOM_COLORS = [
+    "#1a6b8a",  # teal
+    "#8a4f1a",  # amber
+    "#2a7a3a",  # green
+    "#7a2a7a",  # purple
+    "#7a7a1a",  # olive
+    "#1a3a8a",  # blue
+    "#8a1a2a",  # red
+]
+
 
 # ── Corner extension ──────────────────────────────────────────────────────────
 
@@ -233,41 +247,60 @@ def wall_to_boxes(wall: Wall, openings: list[Opening]) -> tuple[list[dict], list
 
 def _door_leaf(sx, sy, ex, ey, thick, h, rot_y, swing_side='right'):
     """
-    Thin door leaf hinged at the hinge end of the opening, swung ~80 degrees open
-    toward the room (swing_side: 'left'|'right' relative to wall travel direction).
+    Thin door leaf hinged at one end of the opening, swung ~80° open into the room.
 
-    Wall travel direction is from (sx,sy) toward (ex,ey).
-    'right' = the right hand side when walking from start to end (positive normal).
-    'left'  = the left hand side (negative normal).
+    Coordinate system:
+      (sx,sy)→(ex,ey) are DXF world coords (Y up).
+      Three.js output: x=world_x, y=height, z=-world_y.
+      rot_y is -atan2(dy,dx) — the Three.js Y-rotation for a box along this wall.
 
-    For H-walls (traveling +X):
-      'right' in image coords = BELOW the wall (larger y) = DXF -Y direction = Three.js +Z
-      'left'  = ABOVE the wall
-
-    We place the hinge at the START corner and swing the leaf toward the room side.
-    The swing sign flips based on swing_side.
+    We use the wall's own unit vector (ux,uy) to compute hinge and leaf positions
+    directly in world space, avoiding trig confusion between wall-angle and rot_y.
     """
     L = math.hypot(ex - sx, ey - sy)
-    leaf_h = min(h - 0.05, 2.1)   # standard door height
-    swing_angle = math.pi * 0.44  # ~80 degrees open
+    if L < 1e-6:
+        return None
 
-    # swing_side 'right' → leaf swings toward positive normal (+90 from wall travel)
-    # swing_side 'left'  → leaf swings toward negative normal (-90 from wall travel)
-    sign = -1.0 if swing_side == 'left' else 1.0
+    leaf_h = min(h - 0.05, 2.1)   # standard door height cap
 
-    # Hinge at the start corner
+    # Unit vector ALONG wall, and its perpendicular (normal)
+    ux = (ex - sx) / L
+    uy = (ey - sy) / L
+    # Normal: rotate 90° CCW in world XY.
+    # 'right' side (walking start→end) = positive normal (+90°) = (-uy, ux)
+    # 'left'  side                     = negative normal (-90°) = ( uy,-ux)
+    sign = 1.0 if swing_side == 'right' else -1.0
+    nx = -uy * sign
+    ny =  ux * sign
+
+    # Swing angle ~80° — leaf center is L/2 away from hinge in the swept direction
+    # Direction of swung leaf = wall_dir rotated ~80° toward room side
+    sweep = math.pi * 0.44   # ~80°
+    cos_s = math.cos(sweep)
+    sin_s = math.sin(sweep)
+    # Rotate (ux,uy) by +sweep toward normal side
+    swung_x = ux * cos_s - uy * sin_s * sign
+    swung_y = ux * sin_s * sign + uy * cos_s
+
+    # Hinge at the start end of the opening
     hinge_x = sx
     hinge_y = sy
-    # Door leaf center at L/2 from hinge in the swung direction
-    angle = rot_y + sign * swing_angle
-    cx = hinge_x + (L / 2) * math.cos(angle)
-    cy = hinge_y - (L / 2) * math.sin(angle)  # DXF Y → -Z
+
+    # Leaf center: hinge + (L/2) in swung direction
+    cx_world = hinge_x + (L / 2) * swung_x
+    cy_world = hinge_y + (L / 2) * swung_y
+
+    # Leaf rotation in Three.js: -atan2 of swung direction
+    leaf_rot_y = -math.atan2(swung_y, swung_x)
 
     return {
-        "position":   {"x": round(cx, 4), "y": round(leaf_h * 0.5, 4), "z": round(-cy, 4)},
-        "dimensions": {"width": round(L, 4), "height": round(leaf_h, 4),
-                       "depth": round(DOOR_LEAF_T, 4)},
-        "rotation_y": round(angle, 6),
+        "position":   {"x": round(cx_world, 4),
+                       "y": round(leaf_h * 0.5, 4),
+                       "z": round(-cy_world, 4)},   # Three.js z = -world_y
+        "dimensions": {"width":  round(L, 4),
+                       "height": round(leaf_h, 4),
+                       "depth":  round(DOOR_LEAF_T, 4)},
+        "rotation_y": round(leaf_rot_y, 6),
     }
 
 
@@ -332,6 +365,212 @@ def room_to_label(room, wall_height: float = 3.0):
     }
 
 
+# ── Wall splitting at room junctions ─────────────────────────────────────────
+
+def _centerline_intersection_t(wa: Wall, wb: Wall):
+    """
+    Returns (t_a, t_b): parameters along wa and wb where their INFINITE
+    centerlines cross.  Returns None if parallel.
+
+    Does NOT check whether the segments actually reach each other — the caller
+    decides that based on t_a / t_b values and wall geometry.
+    """
+    dx1 = wa.end.x - wa.start.x;  dy1 = wa.end.y - wa.start.y
+    dx2 = wb.end.x - wb.start.x;  dy2 = wb.end.y - wb.start.y
+    denom = dx1 * dy2 - dy1 * dx2
+    if abs(denom) < 1e-9:
+        return None   # parallel / collinear
+    dx3 = wb.start.x - wa.start.x
+    dy3 = wb.start.y - wa.start.y
+    t_a = (dx3 * dy2 - dy3 * dx2) / denom
+    t_b = (dx3 * dy1 - dy3 * dx1) / denom
+    return t_a, t_b
+
+
+def _split_walls_at_junctions(walls: list) -> list:
+    """
+    Cut wall A at every point where wall B physically intersects it.
+
+    "Physically intersects" means wall B's body reaches wall A's centerline —
+    whether B ends right at A (T-junction), passes through A (+ junction), or
+    slightly overlaps A (raster overshoot).
+
+    Criterion: the crossing point on wa (t_a) must be inside wa's extent, AND
+    the crossing point must be within wb's physical extent, defined as:
+        -wb.thickness/2 - RASTER_DRIFT  ≤  t_b * Lb  ≤  Lb + wb.thickness/2 + RASTER_DRIFT
+
+    This handles:
+      • T-junction: inner wall ends exactly at outer wall face (t_b ≈ 0 or 1) ✓
+      • + junction: both walls cross each other's midspan ✓
+      • Raster overshoot: endpoint is a few px past the centerline ✓
+      • Short stubs that don't reach wa: t_b*Lb < 0 → not cut ✓
+      • Collinear near-neighbors: angle gate filters these out ✓
+
+    Does NOT hardcode wall thickness thresholds — uses each wall's own measured
+    thickness so the logic scales correctly across different floor plans and PPMs.
+    """
+    RASTER_DRIFT = 0.15   # metres of endpoint slop to tolerate (≈5px @ 33ppm)
+
+    result = []
+
+    for i, wa in enumerate(walls):
+        La = wa.length
+        if La < 1e-6:
+            result.append(wa)
+            continue
+
+        dxa = (wa.end.x - wa.start.x) / La
+        dya = (wa.end.y - wa.start.y) / La
+
+        cut_ts: list = []
+
+        for j, wb in enumerate(walls):
+            if i == j:
+                continue
+
+            # Only perpendicular walls create room boundaries
+            ang = abs(wa.angle_deg - wb.angle_deg) % 180
+            if not (70.0 <= ang <= 110.0):
+                continue
+
+            ret = _centerline_intersection_t(wa, wb)
+            if ret is None:
+                continue
+            t_a, t_b = ret
+            Lb = wb.length
+
+            # t_a: crossing must be strictly inside wa (not at its own endpoints)
+            if t_a <= 0.02 or t_a >= 0.98:
+                continue
+
+            # wb must physically REACH the crossing point.
+            # t_b * Lb is the distance along wb from its start to the crossing.
+            # We allow wb to end anywhere from -(thickness/2 + drift) to Lb+(thickness/2+drift)
+            # so that T-junctions (endpoint right at wa's face) are included.
+            reach = wb.thickness / 2.0 + RASTER_DRIFT
+            if t_b * Lb < -reach or t_b * Lb > Lb + reach:
+                continue
+
+            cut_ts.append(round(t_a, 6))
+
+        if not cut_ts:
+            result.append(wa)
+            continue
+
+        # Sort and deduplicate cuts within 1% of wall length
+        cut_ts.sort()
+        merged: list = []
+        for t in cut_ts:
+            if not merged or t - merged[-1] > 0.01:
+                merged.append(t)
+
+        boundaries = [0.0] + merged + [1.0]
+        for k in range(len(boundaries) - 1):
+            t0, t1 = boundaries[k], boundaries[k + 1]
+            if (t1 - t0) * La < 0.05:   # skip slivers < 5cm
+                continue
+            result.append(Wall(
+                start=Point2D(wa.start.x + t0 * La * dxa, wa.start.y + t0 * La * dya),
+                end=Point2D(wa.start.x + t1 * La * dxa,   wa.start.y + t1 * La * dya),
+                thickness=wa.thickness, height=wa.height,
+                layer=wa.layer, paired=wa.paired, confidence=wa.confidence,
+            ))
+
+    return result
+
+
+# ── Room ID assignment ────────────────────────────────────────────────────────
+
+def _assign_room_ids(wall_boxes: list[dict], rooms: list) -> list[dict]:
+    """
+    Tag every wall box dict with room_id for future per-room texture assignment.
+    No colour is set here — the viewer uses a single uniform wall colour until
+    per-room texturing is explicitly enabled.
+
+    Matching: nearest room centroid in world XZ.
+    If no rooms exist, room_id is None on all boxes.
+    """
+    if not rooms:
+        for box in wall_boxes:
+            box["room_id"] = None
+        return wall_boxes
+
+    room_data = [(r.centroid_x, r.centroid_y, r.id) for r in rooms]
+
+    for box in wall_boxes:
+        bx = box["position"]["x"]
+        by = -box["position"]["z"]   # Three.js z = -world_y
+        best_id   = room_data[0][2]
+        best_dist = float("inf")
+        for (rx, ry, rid) in room_data:
+            d = math.hypot(bx - rx, by - ry)
+            if d < best_dist:
+                best_dist = d
+                best_id   = rid
+        box["room_id"] = best_id
+
+    return wall_boxes
+
+
+# ── Opening re-projection after wall splitting ────────────────────────────────
+
+def _reproj_openings(openings, walls):
+    """
+    After _split_walls_at_junctions re-indexes walls, two things must be fixed:
+      1. wall_idx  — points to the wrong (pre-split) wall index
+      2. t_center  — is a fraction of the OLD full-length wall; on the new
+                     shorter sub-wall it places the opening at the wrong position
+
+    Fix: for each opening, find the sub-wall whose axis contains op.x/op.y,
+    update wall_idx, then recompute t_center as the projection of the opening's
+    world position onto that sub-wall's [0..1] range.
+
+    Opening dataclass fields: wall_idx, t_center, width, kind, x, y, angle, swing_side
+    NOTE: there is NO t_start/t_end on Opening — split_wall_at_openings derives
+    those from t_center ± (width/2)/wall_length internally.
+
+    Freestanding openings (wall_idx == -1) are left untouched.
+    """
+    if not openings or not walls:
+        return openings
+
+    updated = []
+    for op in openings:
+        if op.wall_idx == -1:
+            updated.append(op)
+            continue
+
+        best_idx  = op.wall_idx
+        best_t    = op.t_center   # fallback: keep original
+        best_dist = float("inf")
+
+        for wi, wall in enumerate(walls):
+            L = wall.length
+            if L < 1e-6:
+                continue
+            dxa = (wall.end.x - wall.start.x) / L
+            dya = (wall.end.y - wall.start.y) / L
+            t = ((op.x - wall.start.x) * dxa + (op.y - wall.start.y) * dya) / L
+            if not (-0.05 <= t <= 1.05):
+                continue
+            proj_x = wall.start.x + t * L * dxa
+            proj_y = wall.start.y + t * L * dya
+            d = math.hypot(op.x - proj_x, op.y - proj_y)
+            if d < best_dist:
+                best_dist = d
+                best_idx  = wi
+                best_t    = max(0.0, min(1.0, t))
+
+        from dataclasses import replace as dc_replace
+        updated.append(dc_replace(
+            op,
+            wall_idx = best_idx,
+            t_center = round(best_t, 4),
+        ))
+
+    return updated
+
+
 # ── Main builder ──────────────────────────────────────────────────────────────
 
 class GeometryBuilder:
@@ -340,13 +579,22 @@ class GeometryBuilder:
 
         model = BuildingModel()
 
-        # Group openings by wall index
+        # ── Step 1: split walls at room junctions ─────────────────────────────
+        # Must happen BEFORE opening grouping so wall indices stay consistent.
+        if walls:
+            walls = _split_walls_at_junctions(walls)
+
+        # ── Step 2: re-project openings onto the new (split) wall list ────────
+        if openings:
+            openings = _reproj_openings(openings, walls)
+
+        # ── Step 3: group openings by wall index ───────────────────────────────
         openings_by_wall: dict[int, list[Opening]] = {}
         if openings:
             for op in openings:
                 openings_by_wall.setdefault(op.wall_idx, []).append(op)
 
-        # Compute corner extensions so wall faces meet cleanly at junctions
+        # ── Step 4: corner extensions so wall faces meet cleanly ───────────────
         extensions = _compute_wall_extensions(walls) if walls else []
 
         for wi, wall in enumerate(walls):
@@ -371,6 +619,9 @@ class GeometryBuilder:
             model.walls.extend(wall_boxes)
             model.doors.extend(door_dicts)
             model.windows.extend(win_dicts)
+
+        # ── Step 5: tag every wall box with room_id + room_color ──────────────
+        _assign_room_ids(model.walls, rooms or [])
 
         # ── Freestanding inter-segment openings (wall_idx == -1) ─────────────
         # These are openings that live in the gap between two collinear wall stubs.
