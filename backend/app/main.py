@@ -94,7 +94,7 @@ def process_file(
     wall_height: float = Query(default=3.0, description="Default wall height in meters"),
     wall_thickness: float = Query(default=0.2, description="Default wall thickness in meters"),
     # Raster / image params
-    pixels_per_meter: float = Query(default=100.0, description="For images: how many pixels = 1 meter"),
+    pixels_per_meter: float = Query(default=0.0, description="For images: pixels per meter, 0 = auto-detect"),
     pdf_dpi: int = Query(default=200, description="DPI for PDF rendering (higher = more detail, slower)"),
     hough_threshold: int = Query(default=50, description="Hough line vote threshold (lower = more lines)"),
     hough_min_length: int = Query(default=30, description="Minimum Hough line length in pixels"),

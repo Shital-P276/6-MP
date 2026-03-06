@@ -1144,7 +1144,7 @@ async function uploadAndProcess(file) {
     const wallThickness = document.getElementById('wall-thickness').value;
 
     const procRes = await fetch(
-      `${API}/process/${currentJobId}?scale=${scale}&wall_height=${wallHeight}&wall_thickness=${wallThickness}&pixels_per_meter=0`,
+      `${API}/process/${currentJobId}?scale=${scale}&wall_height=${wallHeight}&wall_thickness=${wallThickness}`,
       { method: 'POST' }
     );
     if (!procRes.ok) throw new Error(`Process failed: ${procRes.status}`);

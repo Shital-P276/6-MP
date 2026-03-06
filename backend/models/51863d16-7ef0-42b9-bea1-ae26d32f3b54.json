@@ -1,0 +1,71 @@
+{
+  "success": true,
+  "processing_time_ms": 71.2,
+  "warnings": [
+    "Raster v5: 3 walls, 0 doors, 0 windows, 0 rooms detected at 100 px/m (override). Cropped from 1000x1000px \u2192 1000x1000px."
+  ],
+  "source_type": "raster",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 1,
+      "floor_count": 1,
+      "room_count": 0,
+      "door_count": 0,
+      "window_count": 0,
+      "total_wall_length": 1.88,
+      "paired_walls": 0,
+      "bounds": {
+        "minx": 7.75,
+        "miny": 0.48,
+        "maxx": 9.63,
+        "maxy": 0.48
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [
+      {
+        "type": "box",
+        "position": {
+          "x": 8.69,
+          "y": 1.5,
+          "z": -0.48
+        },
+        "dimensions": {
+          "width": 1.88,
+          "height": 3.0,
+          "depth": 0.08
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8
+      }
+    ],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": 8.69,
+          "y": 0.0,
+          "z": -0.48
+        },
+        "dimensions": {
+          "width": 1.88,
+          "depth": 0.0
+        }
+      }
+    ],
+    "rooms": [],
+    "doors": [],
+    "windows": []
+  },
+  "stats": {
+    "wall_segments": 3,
+    "walls_detected": 1,
+    "paired_walls": 0,
+    "rooms_detected": 0,
+    "doors_detected": 0,
+    "windows_detected": 0
+  }
+}
