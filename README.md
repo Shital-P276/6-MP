@@ -1,143 +1,176 @@
-# Floor Plan → 3D Visualizer — Backend
+# Floor Plan 3D Visualizer
 
-FastAPI backend that converts DXF floor plans into 3D model JSON for Three.js.
+Upload a floor plan image (PNG/JPG/PDF) or DXF file and get an interactive 3D model with textured walls, doors, and windows.
+
+**Stack:** FastAPI (Python 3.10+) + Three.js (browser, no build step)
+**Repo:** `https://github.com/Shital-P276/6-MP/tree/v2.2`
+
+---
+
+## Quick Start
+
+### 1. Start the backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+You should see: `Uvicorn running on http://127.0.0.1:8000`
+
+### 2. Serve the viewer
+
+> ⚠️ **Do NOT open `index_v2.html` directly as a file.** Browsers block `fetch()` to localhost from `file://` URLs. You must serve it via HTTP.
+
+```bash
+# From the viewer/ folder:
+python -m http.server 3000
+```
+
+Then open: **`http://localhost:3000/index_v2.html`**
+
+The green dot in the top-right header should show **API CONNECTED**.
+
+### 3. Upload a floor plan
+
+Drop a PNG/JPG/PDF floor plan into the upload zone (or click to browse). Supported DXF files also work. Hit **PROCESS FLOOR PLAN**.
 
 ---
 
 ## Project Structure
 
 ```
-floorplan-visualizer/
-├── requirements.txt
-├── sample_data/
-│   └── generate_sample.py       ← Creates a test DXF file
-└── backend/
-    ├── app/
-    │   ├── main.py              ← FastAPI app + endpoints
-    │   └── core/
-    │       ├── dxf_parser.py    ← DXF → raw geometry
-    │       ├── wall_detector.py ← segments → Wall objects
-    │       ├── geometry_builder.py ← Walls → 3D mesh data
-    │       └── pipeline.py      ← Orchestrates all steps
-    └── tests/
-        └── test_pipeline.py     ← pytest test suite
+project/
+├── backend/
+│   └── app/
+│       ├── main.py                  ← FastAPI routes
+│       └── core/
+│           ├── pipeline.py          ← Orchestrates all steps
+│           ├── raster_parser.py     ← Image → wall/door/window detection
+│           ├── wall_detector.py     ← Segments → Wall objects
+│           ├── opening_detector.py  ← DXF door/window detection
+│           ├── room_detector.py     ← Room polygon detection
+│           └── geometry_builder.py  ← Walls → Three.js JSON
+└── viewer/
+    └── index_v2.html                ← Self-contained Three.js viewer
 ```
 
 ---
 
-## Setup
+## Viewer Controls
 
-```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate      # Windows: venv\Scripts\activate
+| Action | Control |
+|--------|---------|
+| Orbit | Left drag |
+| Zoom | Scroll wheel |
+| Pan | Right drag |
+| Views | Keys `1` `2` `3` `4` or PERSP / TOP / FRONT / SIDE buttons |
+| Toggle solid | `S` or SOLID button |
+| Toggle wireframe | `W` or WIRE button |
+| Toggle floor | `F` or FLOOR button |
+| Toggle doors/windows | DOORS / WIN buttons |
+| Process | `Space` |
 
-# Install dependencies
-pip install -r requirements.txt
+---
+
+## Modes
+
+### ◈ Blueprint Mode (default)
+Dark navy walls, cyan wireframes, dark grid background. The classic technical drawing look.
+
+### ◉ Realistic Mode
+Neutral white lighting, procedural textures on walls and floor. Toggle using the right panel.
+An amber **REALISTIC** badge appears on the canvas when active.
+
+---
+
+## Material System (right panel)
+
+Open/close the right panel with the `◀ ▶` button on its left edge.
+
+**Wall Finish — 6 built-in textures:**
+| Texture | Description |
+|---------|-------------|
+| PLASTER | Warm grey matte with surface variation |
+| BRICK | Red/orange coursed brick with mortar lines |
+| CONCRETE | Dark grey with form-board lines and aggregate |
+| WOOD | Vertical timber panels with grain |
+| MARBLE | Light stone with veining |
+| W.TILE | White ceramic grid tiles |
+
+**Floor Finish — 6 built-in textures:**
+Tile · Parquet · Marble · Concrete · Stone · Carpet
+
+**Scope:**
+- `ALL WALLS` — applies chosen finish to every wall at once
+- `SELECT` — click walls in the viewport to select them (orange outline), then apply to selected only
+
+**Custom colour:** Colour picker for any solid wall colour.
+
+**Tile size:** Controls how large each texture tile is (0.3m–4m).
+
+All textures are procedurally generated — no external image files needed.
+
+---
+
+## API Reference
+
+Base URL: `http://localhost:8000`
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check — returns `{"status": "ok"}` |
+| `/upload` | POST | Upload floor plan file, returns `job_id` |
+| `/process/{job_id}` | GET | Process uploaded file, returns 3D model JSON |
+
+**Process query params:**
+```
+scale=1.0              # unit scale (0 = auto-detect)
+wall_height=3.0        # wall height in metres
+wall_thickness=0.2     # fallback wall thickness
+pixels_per_meter=0     # MUST be 0 — triggers auto-detection from image
 ```
 
 ---
 
-## Generate a Sample DXF File
+## Known Limitations
 
-```bash
-cd sample_data
-python generate_sample.py
-# → Creates sample_floorplan.dxf (simple 3-room layout)
-```
-
----
-
-## Run the API
-
-```bash
-cd backend
-uvicorn app.main:app --reload --port 8000
-```
-
-API docs available at: **http://localhost:8000/docs**
+| Issue | Severity | Status |
+|-------|----------|--------|
+| Window symbols only detected on vertical walls | Low | Open |
+| Thin wall door detection (SCAN_HALF too wide) | Medium | Open |
+| Phantom doors from tick marks near edges | Medium | Open |
+| Wall thickness measurement accuracy | High | Open |
+| Corner gap edges between perpendicular walls | High | Partial |
 
 ---
 
-## API Usage
+## Documentation Files
 
-### 1. Upload a DXF file
-```bash
-curl -X POST http://localhost:8000/upload \
-  -F "file=@../sample_data/sample_floorplan.dxf"
-
-# Returns:
-# { "job_id": "abc-123", "status": "uploaded", ... }
-```
-
-### 2. Process it
-```bash
-curl -X POST "http://localhost:8000/process/abc-123?scale=1.0&wall_height=3.0"
-
-# Returns full 3D model JSON:
-# { "success": true, "model": { "walls": [...], "floors": [...] }, ... }
-```
-
-### 3. Retrieve the model later
-```bash
-curl http://localhost:8000/model/abc-123
-```
-
-### Query Parameters for `/process`
-| Param | Default | Description |
-|---|---|---|
-| `scale` | `1.0` | 1 CAD unit = X meters. Use `0.001` if DXF is in mm |
-| `wall_height` | `3.0` | Default wall height in meters |
-| `wall_thickness` | `0.2` | Default wall thickness (used if auto-detect fails) |
+| File | Purpose |
+|------|---------|
+| `CHANGELOG.md` | Full history of every change by session |
+| `LEARNMAP.md` | Hard-won lessons — what works, what broke, and why |
+| `PROJECTMAP.md` | Full map of every file, function, data flow, and open problems |
 
 ---
 
-## Run Tests
+## Troubleshooting
 
-```bash
-cd backend
-pytest tests/ -v
-```
+**API OFFLINE / not connecting**
+1. Make sure uvicorn is running: `cd backend && uvicorn app.main:app --reload --port 8000`
+2. Make sure you opened the viewer via HTTP (`http://localhost:3000`), not as `file://`
+3. Open browser console and run: `fetch('http://localhost:8000/health').then(r=>r.json()).then(console.log).catch(console.error)`
 
----
+**Walls look wrong / missing**
+- Check the log panel in the viewer for PPM detection output
+- Try uploading the raw floor plan PNG, not a screenshot of the 3D viewer
 
-## 3D Model JSON Format
+**Textures look too bright**
+- Switch to Blueprint mode and back to Realistic to re-apply defaults
+- Use the RESET ALL button and reapply your preferred texture
 
-```json
-{
-  "metadata": {
-    "wall_count": 8,
-    "total_wall_length": 36.4,
-    "bounds": { "minx": 0, "miny": 0, "maxx": 10, "maxy": 8 }
-  },
-  "walls": [
-    {
-      "type": "box",
-      "position": { "x": 5.0, "y": 1.5, "z": 0.0 },
-      "dimensions": { "width": 10.0, "height": 3.0, "depth": 0.2 },
-      "rotation_y": 0.0,
-      "length": 10.0
-    }
-  ],
-  "floors": [
-    {
-      "type": "floor",
-      "position": { "x": 5.0, "y": 0.0, "z": 4.0 },
-      "dimensions": { "width": 10.0, "depth": 8.0 }
-    }
-  ]
-}
-```
-
-Each wall box maps directly to a Three.js `BoxGeometry`:
-- `position` → `mesh.position.set(x, y, z)`
-- `dimensions.width/height/depth` → `new BoxGeometry(width, height, depth)`
-- `rotation_y` → `mesh.rotation.y = rotation_y`
-
----
-
-## What's Next
-
-- **Phase 1 complete**: DXF parsing, wall detection, 3D JSON output, REST API
-- **Phase 2**: Three.js viewer that consumes this JSON
-- **Phase 3**: Door/window detection, room labeling, GLTF export
+**Floor plan processes but shows no model**
+- Check browser console for JS errors
+- Verify the backend logs in the terminal for Python tracebacks

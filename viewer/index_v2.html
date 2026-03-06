@@ -732,6 +732,9 @@
     <!-- Corner overlays -->
     <div class="canvas-overlay overlay-tl">
       <div class="badge" id="view-badge">PERSPECTIVE</div>
+      <div class="badge" id="realistic-badge" style="display:none;margin-top:6px;border-color:#f6ad55;color:#f6ad55;">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#f6ad55;box-shadow:0 0 6px #f6ad55;margin-right:6px;animation:pulse 2s ease-in-out infinite;vertical-align:middle"></span>REALISTIC
+      </div>
     </div>
     <div class="canvas-overlay overlay-br">
       <div class="badge">ORBIT: drag · ZOOM: scroll · PAN: right-drag</div>
@@ -783,8 +786,14 @@ function dismissToast(el) {
 async function checkAPI() {
   const dot   = document.getElementById('api-dot');
   const label = document.getElementById('api-label');
+
+  // AbortSignal.timeout() is not available in all browsers — use manual controller
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3000);
+
   try {
-    const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(3000) });
+    const r = await fetch(`${API}/health`, { signal: controller.signal });
+    clearTimeout(timer);
     if (r.ok) {
       dot.className = 'api-dot connected';
       label.textContent = 'API CONNECTED';
@@ -793,6 +802,7 @@ async function checkAPI() {
       throw new Error(`status ${r.status}`);
     }
   } catch (e) {
+    clearTimeout(timer);
     dot.className = 'api-dot error';
     label.textContent = 'API OFFLINE';
     log('Backend unreachable — is uvicorn running?', 'err');
@@ -817,6 +827,7 @@ function log(msg, type = 'info') {
 // Three.js Scene
 // ─────────────────────────────────────────────────────────────────────────────
 let scene, camera, renderer, controls;
+let _ambientLight, _dirLight, _fillLight;  // stored for mode-switching
 let wallMeshes = [], wireMeshes = [], floorMesh;
 let labelSprites = [];
 let showLabels = true;
@@ -847,20 +858,20 @@ function initThree() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
 
-  // Lighting
-  const ambient = new THREE.AmbientLight(0x1a2030, 2);
-  scene.add(ambient);
+  // Lighting — stored in module-level vars so mode switching can swap colours
+  _ambientLight = new THREE.AmbientLight(0x1a2030, 2);
+  scene.add(_ambientLight);
 
-  const dirLight = new THREE.DirectionalLight(0x00e5ff, 1.2);
-  dirLight.position.set(10, 20, 10);
-  dirLight.castShadow = true;
-  dirLight.shadow.mapSize.width = 2048;
-  dirLight.shadow.mapSize.height = 2048;
-  scene.add(dirLight);
+  _dirLight = new THREE.DirectionalLight(0x00e5ff, 1.2);
+  _dirLight.position.set(10, 20, 10);
+  _dirLight.castShadow = true;
+  _dirLight.shadow.mapSize.width = 2048;
+  _dirLight.shadow.mapSize.height = 2048;
+  scene.add(_dirLight);
 
-  const fillLight = new THREE.DirectionalLight(0xff6b35, 0.3);
-  fillLight.position.set(-10, 5, -10);
-  scene.add(fillLight);
+  _fillLight = new THREE.DirectionalLight(0xff6b35, 0.3);
+  _fillLight.position.set(-10, 5, -10);
+  scene.add(_fillLight);
 
   // Grid
   const grid = new THREE.GridHelper(80, 80, 0x1e2530, 0x141820);
@@ -1006,11 +1017,11 @@ function makeTex(size, drawFn) {
 const WALL_TEXTURES = [
   {
     id: 'plaster', label: 'PLASTER',
-    color: 0xd4c9b8,
+    color: 0x9a8e80,
     gen: (ctx, s) => {
-      ctx.fillStyle = '#d4c9b8';  ctx.fillRect(0,0,s,s);
+      ctx.fillStyle = '#9a8e80';  ctx.fillRect(0,0,s,s);
       for (let i=0;i<800;i++) {
-        ctx.fillStyle = `rgba(${180+Math.random()*40|0},${165+Math.random()*40|0},${140+Math.random()*30|0},0.18)`;
+        ctx.fillStyle = `rgba(${130+Math.random()*40|0},${120+Math.random()*35|0},${100+Math.random()*30|0},0.18)`;
         ctx.fillRect(Math.random()*s, Math.random()*s, Math.random()*6+1, Math.random()*6+1);
       }
     }
@@ -1035,16 +1046,25 @@ const WALL_TEXTURES = [
   },
   {
     id: 'concrete', label: 'CONCRETE',
-    color: 0x8a8a82,
+    color: 0x606058,
     gen: (ctx, s) => {
-      ctx.fillStyle = '#8a8a82'; ctx.fillRect(0,0,s,s);
-      for (let i=0;i<1200;i++) {
-        const v = 100+Math.random()*80|0;
-        ctx.fillStyle = `rgba(${v},${v},${v},0.15)`;
-        ctx.fillRect(Math.random()*s,Math.random()*s,Math.random()*8+1,Math.random()*3+1);
+      ctx.fillStyle = '#606058'; ctx.fillRect(0,0,s,s);
+      // Base aggregate speckle
+      for (let i=0;i<1400;i++) {
+        const v = 70+Math.random()*60|0;
+        ctx.fillStyle = `rgba(${v},${v},${v-4},0.18)`;
+        ctx.fillRect(Math.random()*s,Math.random()*s,Math.random()*6+1,Math.random()*3+1);
       }
-      ctx.strokeStyle='rgba(60,60,60,0.12)'; ctx.lineWidth=1;
-      for (let y=0;y<s;y+=s/4) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(s,y); ctx.stroke(); }
+      // Form-board horizontal lines
+      ctx.strokeStyle='rgba(40,40,36,0.18)'; ctx.lineWidth=1.5;
+      for (let y=0;y<s;y+=s/5) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(s,y); ctx.stroke(); }
+      // Coarser aggregate dots
+      for (let i=0;i<120;i++) {
+        const v=50+Math.random()*30|0;
+        ctx.fillStyle=`rgba(${v},${v},${v},0.22)`;
+        const r=Math.random()*3+1;
+        ctx.beginPath(); ctx.arc(Math.random()*s,Math.random()*s,r,0,Math.PI*2); ctx.fill();
+      }
     }
   },
   {
@@ -1270,6 +1290,7 @@ function setMode(mode) {
   _viewMode = mode;
   document.getElementById('mode-blueprint').classList.toggle('active', mode === 'blueprint');
   document.getElementById('mode-realistic').classList.toggle('active', mode === 'realistic');
+  document.getElementById('realistic-badge').style.display = mode === 'realistic' ? 'block' : 'none';
 
   if (mode === 'blueprint') {
     applyBlueprintMode();
@@ -1280,6 +1301,15 @@ function setMode(mode) {
 }
 
 function applyBlueprintMode() {
+  // Restore blueprint lights (cyan + orange tint)
+  _ambientLight.color.set(0x1a2030); _ambientLight.intensity = 2;
+  _dirLight.color.set(0x00e5ff);     _dirLight.intensity = 1.2;
+  _fillLight.color.set(0xff6b35);    _fillLight.intensity = 0.3;
+
+  // Background stays dark always
+  scene.background = new THREE.Color(0x0a0c0f);
+  scene.fog = new THREE.Fog(0x0a0c0f, 40, 120);
+
   // Restore original blueprint materials on all wall meshes
   wallMeshes.forEach(mesh => {
     const orig = _blueprintMats.get(mesh);
@@ -1287,21 +1317,26 @@ function applyBlueprintMode() {
   });
   wireMeshes.forEach(m => { m.visible = showWire; });
 
+  // Restore window sill/header to blueprint blue
+  _refreshWindowPieces();
+
   // Floor — restore dark blueprint floor
   if (floorMesh && _floorBlueprintMat) {
     floorMesh.material = _floorBlueprintMat;
     floorMesh.material.needsUpdate = true;
   }
-  scene.background = new THREE.Color(0x0a0c0f);
-  scene.fog = new THREE.Fog(0x0a0c0f, 40, 120);
 }
 
 function applyRealisticMode() {
-  // Switch scene to daylight
-  scene.background = new THREE.Color(0xd4e8f0);
-  scene.fog = new THREE.Fog(0xd4e8f0, 60, 180);
+  // Swap to neutral lights — low intensity so textures read correctly on dark bg
+  _ambientLight.color.set(0xffffff); _ambientLight.intensity = 0.7;
+  _dirLight.color.set(0xfff8f0);     _dirLight.intensity = 0.55;  // warm key, subtle
+  _fillLight.color.set(0xeef4ff);    _fillLight.intensity = 0.2;  // cool fill, very soft
 
-  // Apply stored overrides or default realistic material to each mesh
+  // Background stays dark — no light mode
+  // (amber REALISTIC badge is the mode indicator instead)
+
+  // Apply stored overrides or default plaster to each mesh
   wallMeshes.forEach(mesh => {
     const over = _meshOverrides.get(mesh);
     if (over) {
@@ -1311,23 +1346,41 @@ function applyRealisticMode() {
     }
   });
 
-  // Wireframes less prominent in realistic mode
+  // Wireframes hidden in realistic mode
   wireMeshes.forEach(m => { m.visible = false; });
+
+  // Window sill/header inherit wall texture
+  _refreshWindowPieces();
 
   // Floor
   applyFloorTexture();
 }
 
 function _applyDefaultRealistic(mesh) {
-  const thick = mesh.userData.thickness || 0.2;
-  const isOuter = mesh.userData.is_outer;
-  const mat = new THREE.MeshPhongMaterial({
-    color:     isOuter ? 0xd4c9b8 : 0xe8e2d8,
-    emissive:  new THREE.Color(0.04, 0.04, 0.04),
-    specular:  new THREE.Color(0.1, 0.1, 0.1),
-    shininess: isOuter ? 18 : 12,
-  });
-  mesh.material = mat;
+  // Default realistic = plaster texture, fully opaque, zero emissive
+  const plasterObj = _wallTexObjs.find(t => t.id === 'plaster');
+  if (plasterObj) {
+    const tileSize = 1.0;
+    const cloned = plasterObj.tex.clone();
+    cloned.wrapS = cloned.wrapT = THREE.RepeatWrapping;
+    const w = mesh.geometry.parameters.width;
+    const h = mesh.geometry.parameters.height;
+    cloned.repeat.set(w / tileSize, h / tileSize);
+    cloned.needsUpdate = true;
+    mesh.material = new THREE.MeshPhongMaterial({
+      map:       cloned,
+      emissive:  new THREE.Color(0, 0, 0),
+      specular:  new THREE.Color(0.12, 0.12, 0.12),
+      shininess: mesh.userData.is_outer ? 20 : 14,
+    });
+  } else {
+    mesh.material = new THREE.MeshPhongMaterial({
+      color:     mesh.userData.is_outer ? 0x9a8e80 : 0xb0a898,
+      emissive:  new THREE.Color(0, 0, 0),
+      specular:  new THREE.Color(0.06, 0.06, 0.06),
+      shininess: 12,
+    });
+  }
   mesh.material.needsUpdate = true;
 }
 
@@ -1335,9 +1388,9 @@ function _applyOverrideToMesh(mesh, over) {
   const tileSize = over.tileSize || parseFloat(document.getElementById('tile-size').value) || 1.0;
   if (over.color) {
     mesh.material = new THREE.MeshPhongMaterial({
-      color: new THREE.Color(over.color),
-      emissive: new THREE.Color(0.03, 0.03, 0.03),
-      specular: new THREE.Color(0.08, 0.08, 0.08),
+      color:     new THREE.Color(over.color),
+      emissive:  new THREE.Color(0, 0, 0),
+      specular:  new THREE.Color(0.06, 0.06, 0.06),
       shininess: 12,
     });
   } else if (over.texId) {
@@ -1351,8 +1404,8 @@ function _applyOverrideToMesh(mesh, over) {
       cloned.needsUpdate = true;
       mesh.material = new THREE.MeshPhongMaterial({
         map:       cloned,
-        emissive:  new THREE.Color(0.02, 0.02, 0.02),
-        specular:  new THREE.Color(0.1, 0.1, 0.1),
+        emissive:  new THREE.Color(0, 0, 0),
+        specular:  new THREE.Color(0.08, 0.08, 0.08),
         shininess: 15,
       });
     }
@@ -1376,9 +1429,9 @@ function applyFloorTexture() {
 
   floorMesh.material = new THREE.MeshPhongMaterial({
     map:       cloned,
-    emissive:  new THREE.Color(0.04, 0.04, 0.04),
-    specular:  new THREE.Color(0.08, 0.08, 0.08),
-    shininess: 25,
+    emissive:  new THREE.Color(0, 0, 0),
+    specular:  new THREE.Color(0.06, 0.06, 0.06),
+    shininess: 18,
     side:      THREE.DoubleSide,
   });
   floorMesh.material.needsUpdate = true;
@@ -1459,6 +1512,73 @@ function handleWallClick(event) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Window wall-piece material helpers
+// Sill and header pieces match the nearest parent wall's current material.
+// Glass panels always stay transparent blue regardless of mode.
+// ─────────────────────────────────────────────────────────────────────────────
+function _makeWallPieceMat(parentMesh) {
+  // Blueprint mode — use blueprint blue
+  if (_viewMode === 'blueprint') {
+    return new THREE.MeshPhongMaterial({
+      color: 0x1a2535, emissive: 0x050d1a,
+      specular: 0x00e5ff, shininess: 30,
+    });
+  }
+  // Realistic mode — match parent wall's override or default (plaster)
+  if (parentMesh) {
+    const over = _meshOverrides.get(parentMesh);
+    if (over) {
+      const tileSize = over.tileSize || 1.0;
+      if (over.color) {
+        return new THREE.MeshPhongMaterial({
+          color: new THREE.Color(over.color),
+          emissive: new THREE.Color(0, 0, 0),
+          specular: new THREE.Color(0.06, 0.06, 0.06),
+          shininess: 12,
+        });
+      } else if (over.texId) {
+        const texObj = _wallTexObjs.find(t => t.id === over.texId);
+        if (texObj) {
+          const cloned = texObj.tex.clone();
+          cloned.wrapS = cloned.wrapT = THREE.RepeatWrapping;
+          cloned.repeat.set(1 / tileSize, 1 / tileSize);
+          cloned.needsUpdate = true;
+          return new THREE.MeshPhongMaterial({
+            map: cloned, emissive: new THREE.Color(0, 0, 0),
+            specular: new THREE.Color(0.08, 0.08, 0.08), shininess: 15,
+          });
+        }
+      }
+    }
+  }
+  // Default realistic fallback: plaster
+  const plasterObj = _wallTexObjs.find(t => t.id === 'plaster');
+  if (plasterObj) {
+    const cloned = plasterObj.tex.clone();
+    cloned.wrapS = cloned.wrapT = THREE.RepeatWrapping;
+    cloned.repeat.set(1.0, 1.0);
+    cloned.needsUpdate = true;
+    return new THREE.MeshPhongMaterial({
+      map: cloned, emissive: new THREE.Color(0, 0, 0),
+      specular: new THREE.Color(0.06, 0.06, 0.06), shininess: 12,
+    });
+  }
+  return new THREE.MeshPhongMaterial({ color: 0x9a8e80, emissive: new THREE.Color(0,0,0) });
+}
+
+function _refreshWindowPieces() {
+  // Re-apply material to all sill/header window pieces based on current mode.
+  // Glass pieces are skipped — they always stay transparent.
+  windowMeshes.forEach(mesh => {
+    if (!mesh.isMesh) return;                    // skip LineSegments wireframes
+    if (mesh.userData && mesh.userData.isGlass) return;  // skip glass panels
+    const parent = (mesh.userData && mesh.userData._parentMesh) || null;
+    mesh.material = _makeWallPieceMat(parent);
+    mesh.material.needsUpdate = true;
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Apply material to walls
 // ─────────────────────────────────────────────────────────────────────────────
 function applyPendingMaterial() {
@@ -1485,6 +1605,7 @@ function applyPendingMaterial() {
     _applyOverrideToMesh(mesh, over);
   });
 
+  _refreshWindowPieces();
   log(`Applied ${over.texId || over.color} to ${targets.length} wall(s)`, 'ok');
 }
 
@@ -1623,32 +1744,38 @@ function buildModel(data) {
   windowMeshes.forEach(m => scene.remove(m));
   windowMeshes = [];
   if (model.windows && model.windows.length > 0) {
-    const wallMat2 = new THREE.MeshPhongMaterial({
-      color: 0x1a2535, emissive: 0x050d1a,
-      specular: 0x00e5ff, shininess: 30,
-    });
     const glassMat = new THREE.MeshPhongMaterial({
-      color: 0x88ccff,
-      emissive: 0x002244,
-      transparent: true,
-      opacity: 0.35,
-      specular: 0xffffff,
-      shininess: 120,
-      side: THREE.DoubleSide,
+      color: 0x88ccff, emissive: 0x002244,
+      transparent: true, opacity: 0.35,
+      specular: 0xffffff, shininess: 120, side: THREE.DoubleSide,
     });
     const frameColor = new THREE.LineBasicMaterial({color:0x88ccff,transparent:true,opacity:0.7});
+
     model.windows.forEach(w => {
       if (!w.pieces) return;
+
+      // Find the nearest wall mesh by XZ position (backend doesn't send wall_idx on windows)
+      const wx = w.position.x, wz = w.position.z;
+      let parentMesh = null, bestDist = Infinity;
+      wallMeshes.forEach(m => {
+        const d = Math.hypot(m.position.x - wx, m.position.z - wz);
+        if (d < bestDist) { bestDist = d; parentMesh = m; }
+      });
+      // Accept nearest wall up to 4m — windows sit on the wall face so XZ center can be offset
+      if (bestDist > 4.0) parentMesh = null;
+
       w.pieces.forEach(p => {
-        const mat = p.kind === 'glass' ? glassMat.clone() : wallMat2.clone();
+        const isGlass = p.kind === 'glass';
         const geo = new THREE.BoxGeometry(p.dimensions.width, p.dimensions.height, p.dimensions.depth);
+        const mat = isGlass ? glassMat.clone() : _makeWallPieceMat(parentMesh);
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(p.position.x, p.position.y, p.position.z);
         mesh.rotation.y = p.rotation_y;
-        mesh.castShadow = (p.kind !== 'glass');
+        mesh.castShadow = !isGlass;
         mesh.receiveShadow = true;
+        mesh.userData = { isGlass, _parentMesh: parentMesh };
         scene.add(mesh); windowMeshes.push(mesh);
-        if (p.kind === 'glass') {
+        if (isGlass) {
           const edge = new THREE.EdgesGeometry(geo);
           const wire = new THREE.LineSegments(edge, frameColor.clone());
           wire.position.copy(mesh.position); wire.rotation.copy(mesh.rotation);
@@ -1658,7 +1785,7 @@ function buildModel(data) {
     });
   }
 
-  // Build room labels
+  // Room legend (2D panel only — no 3D sprites)
   labelSprites.forEach(s => scene.remove(s));
   labelSprites = [];
   const legend = document.getElementById('room-legend');
@@ -1666,9 +1793,6 @@ function buildModel(data) {
 
   if (model.rooms && model.rooms.length > 0) {
     model.rooms.forEach(room => {
-      const sprite = createLabelSprite(room);
-      scene.add(sprite);
-      labelSprites.push(sprite);
       const item = document.createElement('div');
       item.className = 'legend-item';
       item.innerHTML = `<div class="legend-dot" style="background:${room.color}"></div><span>${room.label}</span><span style="color:#6a7a8a;margin-left:4px">${room.area.toFixed(0)}m²</span>`;
@@ -1678,6 +1802,18 @@ function buildModel(data) {
 
   // Update visibility
   applyVisibility();
+
+  // If already in realistic mode when model loads, apply realistic materials immediately
+  if (_viewMode === 'realistic') {
+    wallMeshes.forEach(mesh => {
+      const over = _meshOverrides.get(mesh);
+      if (over) _applyOverrideToMesh(mesh, over);
+      else _applyDefaultRealistic(mesh);
+    });
+    wireMeshes.forEach(m => { m.visible = false; });
+    applyFloorTexture();
+  }
+  _refreshWindowPieces();
 
   // Center camera on model — Z is negated (DXF-Y → Three.js -Z)
   const bounds = model.metadata.bounds;
