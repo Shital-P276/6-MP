@@ -1,0 +1,1 @@
+poppler is for pdf to img transformation along with pdf2img
