@@ -10,5 +10,3 @@ Pillow
 pdf2image
 numpy
 
-# GUI — tkinter comes built-in with Python, no pip needed
-# On Windows it's included. On Ubuntu: sudo apt install python3-tk
