@@ -1,0 +1,797 @@
+{
+  "success": true,
+  "processing_time_ms": 116.5,
+  "warnings": [
+    "raster_v5: 13 walls, 4 doors, 3 windows, 4 rooms detected at 42 px/m (auto). Cropped from 640x455px \u2192 640x455px."
+  ],
+  "source_type": "raster",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 22,
+      "floor_count": 1,
+      "room_count": 3,
+      "door_count": 4,
+      "window_count": 3,
+      "total_wall_length": 52.58,
+      "paired_walls": 1,
+      "bounds": {
+        "minx": 0.9176470588235294,
+        "miny": 0.9176470588235294,
+        "maxx": 14.117647058823529,
+        "maxy": 9.811764705882354
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [
+      {
+        "type": "box",
+        "position": {
+          "x": 11.9059,
+          "y": 1.5,
+          "z": -5.3882
+        },
+        "dimensions": {
+          "width": 4.8235,
+          "height": 3.0,
+          "depth": 0.0941
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 1.0,
+        "room_id": 2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.0941,
+          "y": 1.5,
+          "z": -7.6
+        },
+        "dimensions": {
+          "width": 4.7529,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": 1
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 7.4824,
+          "y": 1.5,
+          "z": -7.6
+        },
+        "dimensions": {
+          "width": 4.8235,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": 2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.7294,
+          "y": 1.5,
+          "z": -7.6
+        },
+        "dimensions": {
+          "width": 2.4706,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": 2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 12.9294,
+          "y": 1.5,
+          "z": -0.9176
+        },
+        "dimensions": {
+          "width": 2.7765,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": 0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 3.0941,
+          "y": 1.5,
+          "z": -3.1529
+        },
+        "dimensions": {
+          "width": 4.7529,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": 1
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 10.6331,
+          "y": 1.5,
+          "z": -2.9882
+        },
+        "dimensions": {
+          "width": 2.2779,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 2.2779,
+        "thickness": 0.4,
+        "room_id": 0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 12.9294,
+          "y": 1.5,
+          "z": -9.8118
+        },
+        "dimensions": {
+          "width": 2.7765,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": 2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 14.1176,
+          "y": 1.5,
+          "z": -8.8734
+        },
+        "dimensions": {
+          "width": 2.2768,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 2.2768,
+        "thickness": 0.4,
+        "room_id": 2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 14.1176,
+          "y": 1.5,
+          "z": -5.6851
+        },
+        "dimensions": {
+          "width": 0.9937,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.9937,
+        "thickness": 0.4,
+        "room_id": 2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 14.1176,
+          "y": 1.5,
+          "z": -5.0731
+        },
+        "dimensions": {
+          "width": 1.0303,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.0303,
+        "thickness": 0.4,
+        "room_id": 0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 14.1176,
+          "y": 1.5,
+          "z": -1.8733
+        },
+        "dimensions": {
+          "width": 2.3113,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 2.3113,
+        "thickness": 0.4,
+        "room_id": 0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.2706,
+          "y": 1.5,
+          "z": -7.0919
+        },
+        "dimensions": {
+          "width": 1.4162,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.4162,
+        "thickness": 0.4,
+        "room_id": 1
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 5.2706,
+          "y": 1.5,
+          "z": -4.3154
+        },
+        "dimensions": {
+          "width": 2.7249,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 2.7249,
+        "thickness": 0.4,
+        "room_id": 1
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.9176,
+          "y": 1.5,
+          "z": -6.8422
+        },
+        "dimensions": {
+          "width": 1.9156,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.9156,
+        "thickness": 0.4,
+        "room_id": 1
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.9176,
+          "y": 1.5,
+          "z": -3.6422
+        },
+        "dimensions": {
+          "width": 1.3785,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.3785,
+        "thickness": 0.4,
+        "room_id": 1
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 9.6941,
+          "y": 1.5,
+          "z": -7.2956
+        },
+        "dimensions": {
+          "width": 1.0088,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.0088,
+        "thickness": 0.4,
+        "room_id": 2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 9.6941,
+          "y": 1.5,
+          "z": -5.6367
+        },
+        "dimensions": {
+          "width": 0.897,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.897,
+        "thickness": 0.4,
+        "room_id": 2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 9.6941,
+          "y": 1.5,
+          "z": -5.0372
+        },
+        "dimensions": {
+          "width": 1.1022,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 1.1022,
+        "thickness": 0.4,
+        "room_id": 0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 9.6941,
+          "y": 1.5,
+          "z": -3.2842
+        },
+        "dimensions": {
+          "width": 0.9918,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "length": 0.9918,
+        "thickness": 0.4,
+        "room_id": 0
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 11.7647,
+          "y": 1.5,
+          "z": -8.7059
+        },
+        "dimensions": {
+          "width": 2.6118,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": 2
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 11.7412,
+          "y": 1.5,
+          "z": -1.9529
+        },
+        "dimensions": {
+          "width": 2.4706,
+          "height": 3.0,
+          "depth": 0.4
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": 0
+      }
+    ],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": 7.5176,
+          "y": 0.0,
+          "z": -5.3647
+        },
+        "dimensions": {
+          "width": 13.2,
+          "depth": 8.8941
+        }
+      }
+    ],
+    "rooms": [
+      {
+        "id": 0,
+        "label": "Bedroom 1",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 14.0,
+        "position": {
+          "x": 12.207,
+          "y": 1.65,
+          "z": -3.432
+        },
+        "dimensions": {
+          "width": 4.2,
+          "depth": 4.25
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 1,
+        "label": "Bedroom 2",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 18.3,
+        "position": {
+          "x": 3.068,
+          "y": 1.65,
+          "z": -5.343
+        },
+        "dimensions": {
+          "width": 4.2,
+          "depth": 4.25
+        },
+        "confidence": 0.6
+      },
+      {
+        "id": 2,
+        "label": "Bedroom 3",
+        "room_type": "bedroom",
+        "color": "#4a3d7a",
+        "area": 13.3,
+        "position": {
+          "x": 12.239,
+          "y": 1.65,
+          "z": -7.255
+        },
+        "dimensions": {
+          "width": 4.2,
+          "depth": 4.15
+        },
+        "confidence": 0.6
+      }
+    ],
+    "doors": [
+      {
+        "position": {
+          "x": 11.8684,
+          "y": 1.5,
+          "z": -2.9882
+        },
+        "width": 0.1927,
+        "height": 3.0,
+        "depth": 0.4,
+        "rotation_y": -0.0,
+        "leaf": {
+          "position": {
+            "x": 11.7901,
+            "y": 1.05,
+            "z": -2.8936
+          },
+          "dimensions": {
+            "width": 0.1927,
+            "height": 2.1,
+            "depth": 0.05
+          },
+          "rotation_y": 1.382301
+        }
+      },
+      {
+        "position": {
+          "x": 5.2706,
+          "y": 1.5,
+          "z": -6.0308
+        },
+        "width": 0.706,
+        "height": 3.0,
+        "depth": 0.4,
+        "rotation_y": 1.570796,
+        "leaf": {
+          "position": {
+            "x": 5.6173,
+            "y": 1.05,
+            "z": -6.3177
+          },
+          "dimensions": {
+            "width": 0.706,
+            "height": 2.1,
+            "depth": 0.05
+          },
+          "rotation_y": 0.188496
+        }
+      },
+      {
+        "position": {
+          "x": 9.6941,
+          "y": 1.5,
+          "z": -6.4382
+        },
+        "width": 0.706,
+        "height": 3.0,
+        "depth": 0.4,
+        "rotation_y": 1.570796,
+        "leaf": {
+          "position": {
+            "x": 10.0409,
+            "y": 1.05,
+            "z": -6.7251
+          },
+          "dimensions": {
+            "width": 0.706,
+            "height": 2.1,
+            "depth": 0.05
+          },
+          "rotation_y": 0.188496
+        }
+      },
+      {
+        "position": {
+          "x": 9.6941,
+          "y": 1.5,
+          "z": -4.1331
+        },
+        "width": 0.706,
+        "height": 3.0,
+        "depth": 0.4,
+        "rotation_y": 1.570796,
+        "leaf": {
+          "position": {
+            "x": 10.0409,
+            "y": 1.05,
+            "z": -4.4199
+          },
+          "dimensions": {
+            "width": 0.706,
+            "height": 2.1,
+            "depth": 0.05
+          },
+          "rotation_y": 0.188496
+        }
+      }
+    ],
+    "windows": [
+      {
+        "position": {
+          "x": 14.1176,
+          "y": 1.5,
+          "z": -6.9585
+        },
+        "width": 1.553,
+        "height": 3.0,
+        "depth": 0.4,
+        "rotation_y": 1.570796,
+        "sill_h": 0.9,
+        "win_h": 1.2,
+        "pieces": [
+          {
+            "kind": "sill",
+            "position": {
+              "x": 14.1176,
+              "y": 0.45,
+              "z": -6.9585
+            },
+            "dimensions": {
+              "width": 1.553,
+              "height": 0.9,
+              "depth": 0.4
+            },
+            "rotation_y": 1.570796
+          },
+          {
+            "kind": "header",
+            "position": {
+              "x": 14.1176,
+              "y": 2.55,
+              "z": -6.9585
+            },
+            "dimensions": {
+              "width": 1.553,
+              "height": 0.9,
+              "depth": 0.4
+            },
+            "rotation_y": 1.570796
+          },
+          {
+            "kind": "glass",
+            "position": {
+              "x": 14.1176,
+              "y": 1.5,
+              "z": -6.9585
+            },
+            "dimensions": {
+              "width": 1.553,
+              "height": 1.2,
+              "depth": 0.06
+            },
+            "rotation_y": 1.570796
+          }
+        ]
+      },
+      {
+        "position": {
+          "x": 14.1176,
+          "y": 1.5,
+          "z": -3.7934
+        },
+        "width": 1.529,
+        "height": 3.0,
+        "depth": 0.4,
+        "rotation_y": 1.570796,
+        "sill_h": 0.9,
+        "win_h": 1.2,
+        "pieces": [
+          {
+            "kind": "sill",
+            "position": {
+              "x": 14.1176,
+              "y": 0.45,
+              "z": -3.7934
+            },
+            "dimensions": {
+              "width": 1.529,
+              "height": 0.9,
+              "depth": 0.4
+            },
+            "rotation_y": 1.570796
+          },
+          {
+            "kind": "header",
+            "position": {
+              "x": 14.1176,
+              "y": 2.55,
+              "z": -3.7934
+            },
+            "dimensions": {
+              "width": 1.529,
+              "height": 0.9,
+              "depth": 0.4
+            },
+            "rotation_y": 1.570796
+          },
+          {
+            "kind": "glass",
+            "position": {
+              "x": 14.1176,
+              "y": 1.5,
+              "z": -3.7934
+            },
+            "dimensions": {
+              "width": 1.529,
+              "height": 1.2,
+              "depth": 0.06
+            },
+            "rotation_y": 1.570796
+          }
+        ]
+      },
+      {
+        "position": {
+          "x": 0.9176,
+          "y": 1.5,
+          "z": -5.1079
+        },
+        "width": 1.553,
+        "height": 3.0,
+        "depth": 0.4,
+        "rotation_y": 1.570796,
+        "sill_h": 0.9,
+        "win_h": 1.2,
+        "pieces": [
+          {
+            "kind": "sill",
+            "position": {
+              "x": 0.9176,
+              "y": 0.45,
+              "z": -5.1079
+            },
+            "dimensions": {
+              "width": 1.553,
+              "height": 0.9,
+              "depth": 0.4
+            },
+            "rotation_y": 1.570796
+          },
+          {
+            "kind": "header",
+            "position": {
+              "x": 0.9176,
+              "y": 2.55,
+              "z": -5.1079
+            },
+            "dimensions": {
+              "width": 1.553,
+              "height": 0.9,
+              "depth": 0.4
+            },
+            "rotation_y": 1.570796
+          },
+          {
+            "kind": "glass",
+            "position": {
+              "x": 0.9176,
+              "y": 1.5,
+              "z": -5.1079
+            },
+            "dimensions": {
+              "width": 1.553,
+              "height": 1.2,
+              "depth": 0.06
+            },
+            "rotation_y": 1.570796
+          }
+        ]
+      }
+    ]
+  },
+  "stats": {
+    "wall_segments": 13,
+    "walls_detected": 12,
+    "paired_walls": 1,
+    "rooms_detected": 3,
+    "doors_detected": 4,
+    "windows_detected": 3
+  }
+}

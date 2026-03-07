@@ -241,6 +241,96 @@ The ratio 9:6 = 1.5:1 is consistent across all images of this type.
 
 ---
 
+## Virtual Tour System (Session 7)
+
+### Architecture
+
+The tour runs entirely in the viewer — no backend changes. It layers three things on top of the existing Three.js scene:
+
+```
+DOM overlay layer (CSS positioned over canvas)
+  └── #hotspot-container  ← one .hotspot div per room, positioned by 3D→2D projection
+  └── #tour-hud           ← bottom-center nav bar
+  └── #tour-minimap       ← bottom-right canvas
+  └── #fp-crosshair       ← subtle centre dot
+
+Three.js animate loop (patched)
+  └── tickTourCamera()         ← lerps camera position + lookAt each frame
+  └── _updateHotspotPositions() ← re-projects 3D floor point → screen px each frame
+  └── drawMinimap()            ← redraws minimap canvas each frame
+```
+
+### Hotspot projection (critical detail)
+
+Hotspots are **not** Three.js sprites — they are CSS `div` elements. Every frame:
+```javascript
+const pt = new THREE.Vector3(room.eyeX, 0.02, room.eyeZ);
+pt.project(camera);   // → NDC
+sx = (pt.x * 0.5 + 0.5) * containerWidth;
+sy = (-pt.y * 0.5 + 0.5) * containerHeight;
+el.style.left = sx + 'px';
+el.style.top  = sy + 'px';
+```
+The `y=0.02` keeps them just above the floor. Hide if `pt.z > 1` (behind camera).
+
+Why CSS instead of sprites: easier to style with CSS animations, hover states, and tooltips. No `THREE.SpriteMaterial` complexity, no depth sorting issues.
+
+### Camera fly animation
+
+```javascript
+// Cubic ease-in-out
+const t = _flyT < 0.5
+  ? 4 * _flyT * _flyT * _flyT
+  : 1 - Math.pow(-2 * _flyT + 2, 3) / 2;
+
+camera.position.copy(_flyFrom.pos.clone().lerp(_flyTo.pos, t));
+camera.lookAt(_flyFrom.target.clone().lerp(_flyTo.target, t));
+```
+
+On landing (`_flyT >= 1`), sync orbit controls so the user can immediately mouse-look:
+```javascript
+window._orbit.target.copy(_flyTo.target);
+window._orbit.spherical.radius = 0.5;   // ← very small so orbit feels like FP look
+window._orbit.update();
+```
+
+### Patching the animate loop without rewriting it
+
+The animate loop is a closure inside `initThree()`. We can't reassign it. Instead we add a global callback list that the (already-patched) loop calls:
+```javascript
+window._tourTickCallbacks = [];
+// Inside animate():
+if (window._tourTickCallbacks) {
+  window._tourTickCallbacks.forEach(fn => fn());
+}
+```
+New systems push their tick function: `window._tourTickCallbacks.push(myTick)`.
+This pattern is safe to extend — add more callbacks without touching the loop again.
+
+### Wrapping buildModel for tour integration
+
+`buildModel` is defined as a plain function. We wrap it via:
+```javascript
+const _origBuildModel = buildModel;
+window.buildModel = function(data) {
+  _origBuildModel(data);
+  _buildTourRooms(data.model.rooms, ...);
+  if (_tourActive) deactivateTour();
+};
+```
+The call site in `uploadAndProcess` was also changed to `window.buildModel(procData)` so the wrapper is always invoked.
+
+### Room coordinate system in the viewer
+
+`model.rooms[i].position` is already in Three.js space:
+- `position.x` = world X
+- `position.y` = wall_height * 0.55 (label height — not used for fly target)
+- `position.z` = -world_Y (Three.js Z = negative DXF Y)
+
+For the fly target we use `position.x` and `position.z` directly, setting `eyeY = 1.6` ourselves.
+
+---
+
 ## Key Lessons (ordered by importance)
 
 1. **Never hardcode pixel-space thresholds** — everything must be PPM-relative
@@ -253,3 +343,7 @@ The ratio 9:6 = 1.5:1 is consistent across all images of this type.
 8. **Procedural textures beat external files** — no CORS, no missing assets, works offline
 9. **rot_y ≠ world angle** — for world-space vector math, derive (ux,uy) from start/end points
 10. **Window symbols must be checked on BOTH H and V walls** — currently a known bug
+11. **CSS overlays beat Three.js sprites for HUD elements** — hover states, tooltips, animations all free
+12. **Patch animate loop via a global callback list** — avoids rewriting closures; safe to extend
+13. **Wrap buildModel via window.buildModel** — lets downstream systems react to model loads without modifying the core function
+14. **Sync orbit controls after camera fly** — set `spherical.radius = 0.5` on landing so orbit feels like first-person look rather than zooming out

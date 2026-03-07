@@ -71,8 +71,40 @@ project/
 | Toggle floor | `F` or FLOOR button |
 | Toggle doors/windows | DOORS / WIN buttons |
 | Process | `Space` |
+| Toggle virtual tour | `T` or **⬡ START TOUR** button in sidebar |
 
 ---
+
+## Virtual Tour
+
+After processing a floor plan, the **⬡ START TOUR** button activates a first-person walkthrough of every detected room.
+
+### How it works
+
+- **Hotspots** — a pulsing purple dot appears on the floor at each room's centroid. Hovering shows the room name; clicking flies the camera there.
+- **Camera fly** — smooth cubic ease-in-out animation from the current viewpoint to eye height (1.6 m) inside the target room. On landing the orbit controls stay active so you can look around freely.
+- **HUD nav bar** — appears at the bottom of the viewport:
+  - `←` / `→` arrows step through rooms in order
+  - Room name, index (`ROOM 2 OF 4`), and area
+  - Progress pips — one dot per room, clickable, active one glows
+  - `▶` / `⏸` autoplay button — automatically advances every 4 seconds
+- **Minimap** — bottom-right panel showing all rooms as numbered dots. The current room is highlighted and a line from it shows the camera's look direction.
+- **Crosshair** — subtle centre-screen indicator active during tour mode.
+
+### Tour controls
+
+| Action | Control |
+|--------|---------|
+| Start / exit tour | `T` or sidebar button |
+| Fly to room | Click a floor hotspot |
+| Previous / next room | `←` / `→` HUD arrows or pip dots |
+| Toggle autoplay | `▶` / `⏸` button in HUD |
+
+### Notes
+
+- Tour button is disabled until a model with detected rooms is loaded.
+- Exiting the tour restores the previous orbit camera position.
+- Works with any floor plan regardless of room count.
 
 ## Modes
 
@@ -143,6 +175,7 @@ pixels_per_meter=0     # MUST be 0 — triggers auto-detection from image
 | Phantom doors from tick marks near edges | Medium | Open |
 | Wall thickness measurement accuracy | High | Open |
 | Corner gap edges between perpendicular walls | High | Partial |
+| VR headset integration (WebXR) | Future | Planned |
 
 ---
 
