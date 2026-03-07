@@ -1049,7 +1049,7 @@ function log(msg, type = 'info') {
 // ─────────────────────────────────────────────────────────────────────────────
 let scene, camera, renderer, controls;
 let _ambientLight, _dirLight, _fillLight;  // stored for mode-switching
-let wallMeshes = [], wireMeshes = [], floorMesh, ceilingMesh;
+let wallMeshes = [], wireMeshes = [], floorMesh;
 let labelSprites = [];
 let showLabels = true;
 let doorMeshes = [], windowMeshes = [];
@@ -2374,8 +2374,6 @@ function activateTour() {
 
   _buildHotspots();
   _buildProgressPips();
-  _createTourCeiling();
-  if (_viewMode !== 'realistic') setMode('realistic');
   _flyToRoom(_tourIndex);
   log('Tour started', 'info');
 }
@@ -2394,7 +2392,6 @@ function deactivateTour() {
   document.getElementById('fp-crosshair').style.display = 'none';
 
   _removeHotspots();
-  _removeTourCeiling();
 
   // Restore top-down orbit view
   if (window._orbit) {
@@ -2458,54 +2455,6 @@ function _buildHotspots() {
 function _removeHotspots() {
   document.getElementById('hotspot-container').innerHTML = '';
   _hotspotEls = [];
-}
-
-// ── Tour ceiling ──────────────────────────────────────────────────────────────
-
-function _createTourCeiling() {
-  _removeTourCeiling();   // safety: never double-add
-
-  const fd = window._tourFloorData;
-  if (!fd) return;
-
-  // Plaster-style ceiling texture — warm off-white with subtle variation
-  const ceilTex = makeTex(256, (ctx, s) => {
-    ctx.fillStyle = '#e8e2d8';
-    ctx.fillRect(0, 0, s, s);
-    // Subtle surface noise
-    for (let i = 0; i < 600; i++) {
-      const v = 210 + Math.random() * 30 | 0;
-      ctx.fillStyle = `rgba(${v},${v - 4},${v - 8},0.12)`;
-      ctx.fillRect(Math.random() * s, Math.random() * s, Math.random() * 8 + 1, Math.random() * 8 + 1);
-    }
-  });
-  ceilTex.wrapS = ceilTex.wrapT = THREE.RepeatWrapping;
-  ceilTex.repeat.set(fd.width / 1.5, fd.depth / 1.5);   // ~1.5m tile repeat
-  ceilTex.needsUpdate = true;
-
-  const geo = new THREE.PlaneGeometry(fd.width, fd.depth);
-  const mat = new THREE.MeshPhongMaterial({
-    map:       ceilTex,
-    side:      THREE.BackSide,    // ← only visible from below; invisible from orbit above
-    emissive:  new THREE.Color(0.06, 0.055, 0.05),
-    specular:  new THREE.Color(0.04, 0.04, 0.04),
-    shininess: 8,
-  });
-
-  ceilingMesh = new THREE.Mesh(geo, mat);
-  ceilingMesh.rotation.x = -Math.PI / 2;               // flat, facing down
-  ceilingMesh.position.set(fd.cx, fd.height, fd.cz);   // at wall-top height
-  ceilingMesh.receiveShadow = false;
-  scene.add(ceilingMesh);
-}
-
-function _removeTourCeiling() {
-  if (ceilingMesh) {
-    scene.remove(ceilingMesh);
-    ceilingMesh.geometry.dispose();
-    ceilingMesh.material.dispose();
-    ceilingMesh = null;
-  }
 }
 
 // ── Build progress pips ──
@@ -2629,18 +2578,13 @@ function tickTourCamera() {
   const pos = _flyFrom.pos.clone().lerp(_flyTo.pos, t);
   const tgt = _flyFrom.target.clone().lerp(_flyTo.target, t);
 
-  // Keep camera at eye level — clamp Y so it never dips to floor or rises above ceiling
-  pos.y = FP_HEIGHT;
-  tgt.y = FP_HEIGHT;
-
   camera.position.copy(pos);
   camera.lookAt(tgt);
 
   // Sync orbit controls target so mouse control works after landing
   if (!_tourFlying && window._orbit) {
     window._orbit.target.copy(tgt);
-    window._orbit.spherical.radius = 0.01;   // near-zero so orbit = pure look, not zoom-out
-    window._orbit.spherical.phi    = Math.PI / 2;  // lock to horizontal (eye level)
+    window._orbit.spherical.radius = 0.5;
     window._orbit.update();
   }
 }
@@ -2777,26 +2721,7 @@ function drawMinimap() {
 // We wrap buildModel so tour state is refreshed whenever a model loads
 const _origBuildModel = buildModel;
 window.buildModel = function(data) {
-  // Remove any tour ceiling from previous model
-  if (ceilingMesh) { scene.remove(ceilingMesh); ceilingMesh = null; }
-
   _origBuildModel(data);
-
-  // Store floor geometry + wall height for ceiling creation
-  if (data.model && data.model.floors && data.model.floors.length > 0) {
-    const f = data.model.floors[0];
-    window._tourFloorData = {
-      width:  f.dimensions.width,
-      depth:  f.dimensions.depth,
-      cx:     f.position.x,
-      cz:     f.position.z,
-      height: data.model.walls && data.model.walls.length > 0
-                ? data.model.walls[0].dimensions.height
-                : parseFloat(document.getElementById('wall-height').value) || 3.0,
-    };
-  } else {
-    window._tourFloorData = null;
-  }
 
   // Collect wall world positions for minimap backdrop
   if (data.model && data.model.walls) {

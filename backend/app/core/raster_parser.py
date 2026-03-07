@@ -79,7 +79,7 @@ HOUGH_MAX_GAP     = 14
 AXIS_SNAP_TOL     = 12    # snap near-H/V lines to exact axes
 COORD_GROUP_TOL   = 11    # group collinear lines within this px distance
 MERGE_GAP         = 60    # max gap to bridge — covers doorway gaps (~50px at 61ppm)
-DEDUP_DIST        = 20    # max px between parallel double-edges to collapse
+DEDUP_DIST        = 35    # max px between parallel double-edges to collapse (thick walls up to ~35px)
 MIN_WALL_PX       = 40    # discard wall segments shorter than this (covers noise arc artifacts)
 WALL_SEAL_PX      = 48    # kernel for doorway-sealing before room detection
 MIN_ROOM_PX       = 2000
@@ -843,6 +843,15 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
         gaps = _find_gap_openings(fp_gray, 'H', y, x1, x2, ppm)
         for gs, ge, gpx, kind in gaps:
             emit(wall_id, 'H', y, x1, x2, gs, ge, gpx, kind)
+        # Window symbol scan for H walls too (catches CAD double-line windows)
+        syms = _find_window_symbols(fp_gray, 'H', y, x1, x2, ppm)
+        for gs, ge, gpx, kind in syms:
+            already = any(
+                abs(op["x_px"] - (gs + ge) // 2) < gpx and abs(op["y_px"] - y) < 5
+                for op in openings if op["wall_id"] == wall_id
+            )
+            if not already:
+                emit(wall_id, 'H', y, x1, x2, gs, ge, gpx, kind)
         wall_id += 1
 
     for x, y1, _, y2 in v_walls:
@@ -868,15 +877,35 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
     max_win_px    = int(MAX_WINDOW_M * ppm)
     min_open_px   = max(2, int(MIN_OPENING_M * ppm))
 
-    h_by_y = defaultdict(list)   # y → [(x1, x2, wall_id), ...]
-    _wid = 0
-    for x1, y, x2, _ in h_walls:
-        h_by_y[y].append((x1, x2, _wid))
-        _wid += 1
+    # Group walls by their fixed coordinate with tolerance so near-collinear
+    # stubs (same wall, slightly different y/x from skeleton noise) end up in
+    # the same bucket and their inter-stub gap is scanned for openings.
+    def _group_by_fixed(walls, orient):
+        """Return dict: representative_fixed → [(a, b, wall_id), ...]"""
+        groups = {}   # rep_key → list
+        wid_map = {}  # original wall tuple → wall_id
+        _w = 0
+        for wall in walls:
+            fixed = wall[1] if orient == 'H' else wall[0]
+            a     = wall[0] if orient == 'H' else wall[1]
+            b     = wall[2] if orient == 'H' else wall[3]
+            key   = next((k for k in groups if abs(k - fixed) <= COORD_GROUP_TOL), None)
+            if key is None:
+                key = fixed; groups[key] = []
+            groups[key].append((a, b, _w))
+            _w += 1
+        return groups
 
-    v_by_x = defaultdict(list)   # x → [(y1, y2, wall_id), ...]
+    h_by_y = _group_by_fixed(h_walls, 'H')
+    _wid = len(h_walls)
+
+    v_by_x = {}
+    _v_walls_offset = _wid
     for x, y1, _, y2 in v_walls:
-        v_by_x[x].append((y1, y2, _wid))
+        key = next((k for k in v_by_x if abs(k - x) <= COORD_GROUP_TOL), None)
+        if key is None:
+            key = x; v_by_x[key] = []
+        v_by_x[key].append((y1, y2, _wid))
         _wid += 1
 
     DEDUP_RADIUS_PX = max(12, int(ppm * 0.5))   # ~0.5m; adapts to image scale
@@ -888,7 +917,37 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
             x_right_start = segs[i + 1][0]
             wid_left     = segs[i][2]
             if x_right_start <= x_left_end:
-                continue   # overlapping — already one wall
+                # Stubs overlap — but a window may still exist within their combined range.
+                # Scan the UNION of both stubs for a sufficiently wide bright gap.
+                combined_start = segs[i][0]
+                combined_end   = segs[i + 1][1]
+                gap_mid = (combined_start + combined_end) // 2
+                already = any(abs(op["x_px"] - gap_mid) < DEDUP_RADIUS_PX and abs(op["y_px"] - y) < DEDUP_RADIUS_PX
+                              for op in openings)
+                if already:
+                    continue
+                # Find any bright gap within the combined range
+                b_start = b_end = None; bright_run = 0
+                best_gs = best_ge = best_gpx = None
+                for x in range(combined_start, combined_end + 1):
+                    v = _sample_wall_band(fp_gray, 'H', y, x)
+                    if v > OPENING_BRIGHT:
+                        if b_start is None: b_start = x
+                        b_end = x; bright_run += 1
+                    else:
+                        if b_start is not None and bright_run >= min_open_px:
+                            if best_gpx is None or bright_run > best_gpx:
+                                best_gs, best_ge, best_gpx = b_start, b_end, bright_run
+                        b_start = b_end = None; bright_run = 0
+                if b_start is not None and bright_run >= min_open_px:
+                    if best_gpx is None or bright_run > best_gpx:
+                        best_gs, best_ge, best_gpx = b_start, b_end, bright_run
+                if best_gs is None or best_gpx > max_win_px:
+                    continue
+                kind = "door" if best_gpx <= max_door_px else "window"
+                emit_inter(wid_left, 'H', y, combined_start, combined_end,
+                           best_gs, best_ge, kind)
+                continue
             # Skip if this gap is already an intra-segment gap somewhere
             gap_mid = (x_left_end + x_right_start) // 2
             already = any(abs(op["x_px"] - gap_mid) < DEDUP_RADIUS_PX and abs(op["y_px"] - y) < DEDUP_RADIUS_PX
@@ -918,6 +977,34 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
             y_bot_start  = segs[i + 1][0]
             wid_left     = segs[i][2]
             if y_bot_start <= y_top_end:
+                # Overlapping stubs — scan combined range for a large bright gap
+                combined_start = segs[i][0]
+                combined_end   = segs[i + 1][1]
+                gap_mid = (combined_start + combined_end) // 2
+                already = any(abs(op["x_px"] - x) < DEDUP_RADIUS_PX and abs(op["y_px"] - gap_mid) < DEDUP_RADIUS_PX
+                              for op in openings)
+                if already:
+                    continue
+                b_start = b_end = None; bright_run = 0
+                best_gs = best_ge = best_gpx = None
+                for y in range(combined_start, combined_end + 1):
+                    v = _sample_wall_band(fp_gray, 'V', x, y)
+                    if v > OPENING_BRIGHT:
+                        if b_start is None: b_start = y
+                        b_end = y; bright_run += 1
+                    else:
+                        if b_start is not None and bright_run >= min_open_px:
+                            if best_gpx is None or bright_run > best_gpx:
+                                best_gs, best_ge, best_gpx = b_start, b_end, bright_run
+                        b_start = b_end = None; bright_run = 0
+                if b_start is not None and bright_run >= min_open_px:
+                    if best_gpx is None or bright_run > best_gpx:
+                        best_gs, best_ge, best_gpx = b_start, b_end, bright_run
+                if best_gs is None or best_gpx > max_win_px:
+                    continue
+                kind = "door" if best_gpx <= max_door_px else "window"
+                emit_inter(wid_left, 'V', x, combined_start, combined_end,
+                           best_gs, best_ge, kind)
                 continue
             gap_mid = (y_top_end + y_bot_start) // 2
             already = any(abs(op["x_px"] - x) < DEDUP_RADIUS_PX and abs(op["y_px"] - gap_mid) < DEDUP_RADIUS_PX
@@ -1094,7 +1181,22 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
                         emit_inter(_wid, 'H', y, endpoint_x, vx,
                                    b_start, b_end, kind)
 
-    return openings
+    # ── PASS 4: Global opening dedup ─────────────────────────────────────────
+    # When a thick wall is detected as two parallel lines, openings on both
+    # faces are found independently.  Collapse any pair that is within
+    # DEDUP_RADIUS_PX of each other in BOTH axes, keeping the first one found.
+    FINAL_DEDUP_PX = max(15, int(ppm * 0.35))   # ~35cm tolerance
+    deduped = []
+    for op in openings:
+        duplicate = any(
+            abs(op["x_px"] - kept["x_px"]) < FINAL_DEDUP_PX and
+            abs(op["y_px"] - kept["y_px"]) < FINAL_DEDUP_PX and
+            op["kind"] == kept["kind"]
+            for kept in deduped
+        )
+        if not duplicate:
+            deduped.append(op)
+    return deduped
 
 
 # ── Step 10 — room detection ──────────────────────────────────────────────────

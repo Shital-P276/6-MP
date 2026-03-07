@@ -959,7 +959,7 @@
     </div>
     <div class="canvas-overlay overlay-br">
       <div class="badge">ORBIT: drag · ZOOM: scroll · PAN: right-drag</div>
-      <div class="badge" id="shortcut-hint" style="opacity:0.5;font-size:9px">1–4: views · S/W/F/L: toggles · Space: process · T: tour</div>
+      <div class="badge" id="shortcut-hint" style="opacity:0.5;font-size:9px">1–4: views · S/W/F/L: toggles · Space: process · T: tour · ESC: exit tour · ←→: rooms · drag: look</div>
     </div>
 
   </div>
@@ -1914,10 +1914,14 @@ function buildModel(data) {
     wireMeshes.push(wire);
   });
 
-  // Build floor
+  // Build floor — inset by half the median wall thickness so it sits flush
+  // inside the outer walls rather than poking through them.
   if (model.floors && model.floors.length > 0) {
     const f = model.floors[0];
-    const fgeo = new THREE.PlaneGeometry(f.dimensions.width, f.dimensions.depth);
+    const inset = medianThick * 0.5;   // shrink each edge inward by half wall thickness
+    const fw = Math.max(0.1, f.dimensions.width - inset * 2);
+    const fd = Math.max(0.1, f.dimensions.depth - inset * 2);
+    const fgeo = new THREE.PlaneGeometry(fw, fd);
     floorMesh = new THREE.Mesh(fgeo, _floorBlueprintMat);
     floorMesh.rotation.x = -Math.PI / 2;
     floorMesh.position.set(f.position.x, 0.001, f.position.z);
@@ -2270,6 +2274,34 @@ document.addEventListener('keydown', e => {
 
   const key = e.key.toLowerCase();
 
+  // ── Tour-mode keys take priority ─────────────────────────────────────────
+  if (_tourActive) {
+    // ESC = exit tour
+    if (e.key === 'Escape') { deactivateTour(); return; }
+
+    // Arrow keys: left/right = previous/next room; up/down = look up/down
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); tourNav(-1); return; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); tourNav(+1); return; }
+
+    // Up/Down arrows: tilt camera vertically while in FP mode
+    const TILT_STEP = 0.08;   // radians per keypress
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      _tourLookPitch = (_tourLookPitch || 0) + (e.key === 'ArrowUp' ? TILT_STEP : -TILT_STEP);
+      _tourLookPitch = Math.max(-0.6, Math.min(0.6, _tourLookPitch));   // clamp ±35°
+      _applyTourLook();
+      return;
+    }
+    // A/D = pan look left/right
+    const PAN_STEP = 0.10;
+    if (key === 'a' || key === 'd') {
+      e.preventDefault();
+      _tourLookYaw = (_tourLookYaw || 0) + (key === 'a' ? PAN_STEP : -PAN_STEP);
+      _applyTourLook();
+      return;
+    }
+  }
+
   // Views: 1=perspective, 2=top, 3=front, 4=side
   const viewMap = { '1':'perspective', '2':'top', '3':'front', '4':'side' };
   if (viewMap[key]) {
@@ -2333,22 +2365,89 @@ log('Shortcuts: 1-4 views · S/W/F/L toggles · Space process · R reset', 'info
 
 // ── State ──
 let _tourActive      = false;
-let _tourRooms       = [];          // [{id, label, area, x, y, z, color}] world coords
-let _tourIndex       = 0;           // current room index
-let _tourFlying      = false;       // camera fly in progress
+let _tourRooms       = [];
+let _tourIndex       = 0;
+let _tourFlying      = false;
 let _tourAutoplay    = false;
 let _tourAutoTimer   = null;
-const TOUR_AUTOPLAY_DELAY = 4000;   // ms per room in autoplay
+const TOUR_AUTOPLAY_DELAY = 4000;
 
 // Camera fly animation state
-let _flyFrom  = null;   // {pos: THREE.Vector3, target: THREE.Vector3}
-let _flyTo    = null;   // same
-let _flyT     = 0;      // 0→1 progress
-const FLY_SPEED = 0.032; // per frame increment (controls smoothness)
-const FP_HEIGHT = 1.6;   // first-person eye height in metres
+let _flyFrom  = null;
+let _flyTo    = null;
+let _flyT     = 0;
+const FLY_SPEED = 0.032;
+const FP_HEIGHT = 1.6;
 
-// ── Hotspot DOM elements (positioned by projecting 3D→2D each frame) ──
-let _hotspotEls = [];   // parallel to _tourRooms
+// ── Look-around state (pitch/yaw offsets applied on top of fly destination) ──
+let _tourLookYaw   = 0;   // horizontal pan accumulated, radians
+let _tourLookPitch = 0;   // vertical tilt accumulated, radians
+let _tourLookBase  = null; // {fwd: THREE.Vector3} baseline forward at landing
+
+// Reset look offsets when flying to a new room
+function _resetTourLook() {
+  _tourLookYaw   = 0;
+  _tourLookPitch = 0;
+  _tourLookBase  = null;
+}
+
+// Apply current yaw + pitch offsets to the camera while in FP mode
+function _applyTourLook() {
+  if (!_tourActive || _tourFlying) return;
+  const room = _tourRooms[_tourIndex];
+  if (!room) return;
+
+  const eyePos = new THREE.Vector3(room.eyeX, FP_HEIGHT, room.eyeZ);
+  const sceneCenter = new THREE.Vector3(0, FP_HEIGHT, 0);
+
+  // Base forward direction (toward scene centre)
+  if (!_tourLookBase) {
+    const base = sceneCenter.clone().sub(eyePos).normalize();
+    _tourLookBase = { fwd: base };
+  }
+  const base = _tourLookBase.fwd.clone();
+
+  // Rotate base forward by yaw (around world Y)
+  const yawQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), _tourLookYaw);
+  base.applyQuaternion(yawQ);
+
+  // Rotate by pitch (around camera's right axis)
+  const right = base.clone().cross(new THREE.Vector3(0,1,0)).normalize();
+  const pitchQ = new THREE.Quaternion().setFromAxisAngle(right, _tourLookPitch);
+  base.applyQuaternion(pitchQ);
+
+  const lookAt = eyePos.clone().add(base);
+  camera.position.copy(eyePos);
+  camera.lookAt(lookAt);
+}
+
+// ── Mouse-drag look-around while in first-person tour ──
+(function _addTourMouseLook() {
+  let _dragging = false;
+  let _lastX = 0, _lastY = 0;
+  const SENSITIVITY = 0.004;
+
+  document.getElementById('canvas-container').addEventListener('mousedown', e => {
+    if (!_tourActive || _tourFlying) return;
+    _dragging = true;
+    _lastX = e.clientX; _lastY = e.clientY;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!_dragging || !_tourActive || _tourFlying) return;
+    const dx = e.clientX - _lastX;
+    const dy = e.clientY - _lastY;
+    _lastX = e.clientX; _lastY = e.clientY;
+    _tourLookYaw   += dx * SENSITIVITY;
+    _tourLookPitch -= dy * SENSITIVITY;   // invert Y: drag down = look down
+    _tourLookPitch  = Math.max(-0.65, Math.min(0.65, _tourLookPitch));
+    _applyTourLook();
+  });
+  document.addEventListener('mouseup', () => { _dragging = false; });
+})();
+
+// ── Hotspot DOM elements ──
+let _hotspotEls = [];
 
 // ── Activate / deactivate tour ──
 function toggleTour() {
@@ -2396,6 +2495,10 @@ function deactivateTour() {
   _removeHotspots();
   _removeTourCeiling();
 
+  // Restore camera FOV
+  camera.fov = 60;
+  camera.updateProjectionMatrix();
+
   // Restore top-down orbit view
   if (window._orbit) {
     window._orbit.spherical.phi    = Math.PI / 3;
@@ -2412,19 +2515,52 @@ function _buildTourRooms(modelRooms, modelBounds) {
   _tourRooms = [];
   if (!modelRooms || modelRooms.length === 0) return;
 
+  // Collect wall boxes for proximity testing
+  // Each wall: {cx, cz, halfW, halfD, ry}
+  const wallBoxes = (window._tourWallData || []).map(w => w);
+
   modelRooms.forEach(r => {
+    let eyeX = r.position.x;
+    let eyeZ = r.position.z;
+
+    // ── Fix 4: Push viewpoint away from walls ─────────────────────────────
+    // We nudge the camera position until it's at least MIN_WALL_CLEARANCE from
+    // any wall, so the view doesn't clip through geometry.
+    const MIN_CLEARANCE = 0.55;   // metres — half a wall thickness + margin
+    const MAX_TRIES     = 8;
+    const STEP          = 0.35;   // nudge step in metres
+
+    for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+      let tooClose = false;
+      let pushX = 0, pushZ = 0;
+
+      wallBoxes.forEach(w => {
+        const dx = eyeX - w.cx;
+        const dz = eyeZ - w.cz;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const wallHalf = Math.max(w.halfW || 0.1, w.halfD || 0.1);
+        if (dist < wallHalf + MIN_CLEARANCE) {
+          tooClose = true;
+          // Push away from wall centre
+          const len = dist || 0.001;
+          pushX += (dx / len) * STEP;
+          pushZ += (dz / len) * STEP;
+        }
+      });
+
+      if (!tooClose) break;
+      eyeX += pushX;
+      eyeZ += pushZ;
+    }
+
     _tourRooms.push({
       id:    r.id,
       label: r.label,
       area:  r.area,
       color: r.color || '#a78bfa',
-      // World coords — r.position is already in Three.js space (x, y, z)
-      wx: r.position.x,      // world X
-      wy: r.position.z,      // world Z = world DXF-Y (Three.js Z = -dxf_y)
-      // Eye position for FP cam: inside the room, at eye height
-      eyeX: r.position.x,
-      eyeY: FP_HEIGHT,
-      eyeZ: r.position.z,
+      wx: r.position.x,
+      wy: r.position.z,
+      eyeX, eyeY: FP_HEIGHT, eyeZ,
     });
   });
 
@@ -2468,33 +2604,47 @@ function _createTourCeiling() {
   const fd = window._tourFloorData;
   if (!fd) return;
 
-  // Plaster-style ceiling texture — warm off-white with subtle variation
-  const ceilTex = makeTex(256, (ctx, s) => {
-    ctx.fillStyle = '#e8e2d8';
+  // Ceiling: warm cream with subtle plaster texture — clearly different from dark floor
+  const ceilTex = makeTex(512, (ctx, s) => {
+    // Base: warm off-white with a very faint yellowish tint
+    ctx.fillStyle = '#f5efe6';
     ctx.fillRect(0, 0, s, s);
-    // Subtle surface noise
-    for (let i = 0; i < 600; i++) {
-      const v = 210 + Math.random() * 30 | 0;
-      ctx.fillStyle = `rgba(${v},${v - 4},${v - 8},0.12)`;
-      ctx.fillRect(Math.random() * s, Math.random() * s, Math.random() * 8 + 1, Math.random() * 8 + 1);
+    // Subtle plaster grain
+    for (let i = 0; i < 1200; i++) {
+      const v = 200 + Math.random() * 45 | 0;
+      const a = (0.04 + Math.random() * 0.06).toFixed(2);
+      ctx.fillStyle = `rgba(${v},${v - 6},${v - 12},${a})`;
+      const w = Math.random() * 6 + 1, h = Math.random() * 6 + 1;
+      ctx.fillRect(Math.random() * s, Math.random() * s, w, h);
+    }
+    // Very faint grid lines (like a coffered ceiling pattern)
+    ctx.strokeStyle = 'rgba(160,140,110,0.08)';
+    ctx.lineWidth = 0.5;
+    const step = s / 4;
+    for (let x = step; x < s; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, s); ctx.stroke();
+    }
+    for (let y = step; y < s; y += step) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(s, y); ctx.stroke();
     }
   });
   ceilTex.wrapS = ceilTex.wrapT = THREE.RepeatWrapping;
-  ceilTex.repeat.set(fd.width / 1.5, fd.depth / 1.5);   // ~1.5m tile repeat
+  ceilTex.repeat.set(fd.width / 2.0, fd.depth / 2.0);   // ~2m tile repeat
   ceilTex.needsUpdate = true;
 
   const geo = new THREE.PlaneGeometry(fd.width, fd.depth);
   const mat = new THREE.MeshPhongMaterial({
     map:       ceilTex,
-    side:      THREE.BackSide,    // ← only visible from below; invisible from orbit above
-    emissive:  new THREE.Color(0.06, 0.055, 0.05),
-    specular:  new THREE.Color(0.04, 0.04, 0.04),
-    shininess: 8,
+    color:     0xf0e8d8,          // warm cream base tint
+    side:      THREE.BackSide,    // only visible from below
+    emissive:  new THREE.Color(0.12, 0.09, 0.06),   // warm ambient glow
+    specular:  new THREE.Color(0.06, 0.05, 0.03),
+    shininess: 6,
   });
 
   ceilingMesh = new THREE.Mesh(geo, mat);
-  ceilingMesh.rotation.x = -Math.PI / 2;               // flat, facing down
-  ceilingMesh.position.set(fd.cx, fd.height, fd.cz);   // at wall-top height
+  ceilingMesh.rotation.x = -Math.PI / 2;
+  ceilingMesh.position.set(fd.cx, fd.height, fd.cz);
   ceilingMesh.receiveShadow = false;
   scene.add(ceilingMesh);
 }
@@ -2552,6 +2702,7 @@ function _flyToRoom(idx) {
   _flyTo    = { pos: toPos,          target: toTarget };
   _flyT     = 0;
   _tourFlying = true;
+  _resetTourLook();
 
   // Update sidebar info
   document.getElementById('tour-idx-display').textContent  = `${idx + 1} / ${_tourRooms.length}`;
@@ -2629,19 +2780,28 @@ function tickTourCamera() {
   const pos = _flyFrom.pos.clone().lerp(_flyTo.pos, t);
   const tgt = _flyFrom.target.clone().lerp(_flyTo.target, t);
 
-  // Keep camera at eye level — clamp Y so it never dips to floor or rises above ceiling
+  // Keep camera at eye level
   pos.y = FP_HEIGHT;
   tgt.y = FP_HEIGHT;
+
+  // Subtle FOV dip at midpoint for cinematic feel (±5° bell curve)
+  const fovDip = Math.sin(t * Math.PI) * 5;
+  camera.fov = 60 - fovDip;
+  camera.updateProjectionMatrix();
 
   camera.position.copy(pos);
   camera.lookAt(tgt);
 
-  // Sync orbit controls target so mouse control works after landing
-  if (!_tourFlying && window._orbit) {
-    window._orbit.target.copy(tgt);
-    window._orbit.spherical.radius = 0.01;   // near-zero so orbit = pure look, not zoom-out
-    window._orbit.spherical.phi    = Math.PI / 2;  // lock to horizontal (eye level)
-    window._orbit.update();
+  // On landing: restore FOV, sync orbit controls
+  if (!_tourFlying) {
+    camera.fov = 60;
+    camera.updateProjectionMatrix();
+    if (window._orbit) {
+      window._orbit.target.copy(tgt);
+      window._orbit.spherical.radius = 0.01;
+      window._orbit.spherical.phi    = Math.PI / 2;
+      window._orbit.update();
+    }
   }
 }
 
@@ -2785,9 +2945,13 @@ window.buildModel = function(data) {
   // Store floor geometry + wall height for ceiling creation
   if (data.model && data.model.floors && data.model.floors.length > 0) {
     const f = data.model.floors[0];
+    // Mirror the inset from buildModel so ceiling aligns with the inset floor
+    const thicknesses = (data.model.walls || []).map(w => w.dimensions.depth || 0.2).sort((a,b)=>a-b);
+    const medT = thicknesses[Math.floor(thicknesses.length / 2)] || 0.2;
+    const ins  = medT * 0.5;
     window._tourFloorData = {
-      width:  f.dimensions.width,
-      depth:  f.dimensions.depth,
+      width:  Math.max(0.1, f.dimensions.width  - ins * 2),
+      depth:  Math.max(0.1, f.dimensions.depth  - ins * 2),
       cx:     f.position.x,
       cz:     f.position.z,
       height: data.model.walls && data.model.walls.length > 0
@@ -2798,11 +2962,14 @@ window.buildModel = function(data) {
     window._tourFloorData = null;
   }
 
-  // Collect wall world positions for minimap backdrop
+  // Collect wall world positions for minimap backdrop + tour proximity test
   if (data.model && data.model.walls) {
     window._tourWallData = data.model.walls.map(w => ({
-      cx: w.position.x,
-      cz: w.position.z,
+      cx:    w.position.x,
+      cz:    w.position.z,
+      halfW: (w.dimensions.width || 0.2) * 0.5,
+      halfD: (w.dimensions.depth || 0.2) * 0.5,
+      ry:    w.rotation_y || 0,
     }));
   }
 
