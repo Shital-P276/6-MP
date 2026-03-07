@@ -1,51 +1,44 @@
 """
-Raster Parser v5 — Floor plan PNG/PDF → ParsedGeometry
+Raster Parser v6 — Floor plan PNG/PDF → ParsedGeometry
 
 Supported inputs
 ────────────────
-  • Clean architectural PNGs/PDFs (CAD exports with green dimension annotations)
+  • CAD exports (green dimension annotations, walls gray 82-148, beige rooms)
+  • SimpleDraw exports (high-contrast B&W, walls black 0-20, white background)
   • Screenshots of the floor-plan viewer (auto-cropped to the floor-plan panel)
 
-Pipeline
-────────
-  1. AUTO-CROP     Find the white-background floor plan panel inside any UI screenshot.
-                   Uses brightness ≥ 175 (excludes cyan 3-D viewer walls) and picks
-                   the contour with the highest fill-ratio (most uniformly white).
+Format auto-detection
+─────────────────────
+  • SimpleDraw: >80% white pixels, >3% black pixels, <5% mid-tone → use
+    inverted thresholds (wall_lo=0, wall_hi=30; room_lo=220, room_hi=255).
+  • CAD / coloured: use standard thresholds (wall 82-148, room 153-244).
 
-  2. PPM           Read green dimension tick marks along the top/bottom border.
-                   Each inter-tick gap represents one labelled bay (default 400 cm = 4 m).
-                   Falls back to FALLBACK_PPM (65) if tick detection fails.
+Opening detection strategy
+──────────────────────────
+  Pass 1 (intra-segment): bright gaps WITHIN each wall segment.
+    Endpoint guard: discard gaps that span the ENTIRE wall (i.e. gap covers
+    ≥90% of wall length) — those are open wall ends, not real openings.
 
-  3. SEGMENT       Classify every pixel:
-                     WALL : gray 82–148, not strongly green
-                     ROOM : gray 153–244, not green
-                   Strip the outer BORDER_CROP_PX (annotation grid).
+  Pass 2 (inter-segment): scan gaps BETWEEN collinear wall stubs on the same
+    line — openings too wide for MERGE_GAP to bridge.
 
-  4. SKELETON      Morphological thinning (cross-kernel, up to 80 iterations)
-                   → single-pixel wall centerlines.
+  T-junction filter: if a perpendicular wall crosses a gap → it is a structural
+    junction, not an opening; skip it.
 
-  5. HOUGH+SNAP    HoughLinesP on skeleton; snap lines within ±12° of horizontal or
-                   vertical to exact H/V axes.  Discard diagonals.
+  Bbox filter: gaps whose centre lies outside the building bounding box are
+    beyond the outer walls and are discarded.
 
-  6. MERGE         Group segments by fixed coordinate (±11 px tolerance), bridge gaps
-                   ≤ 18 px, discard results shorter than MIN_WALL_PX.
+Door vs Window classification (format-independent)
+───────────────────────────────────────────────────
+  Two complementary rules applied in order:
 
-  7. DEDUP         Collapse parallel double-edges (both faces of a thick wall) into
-                   one centerline (average position).
+  1. Jamb rule — if the shorter of the two wall stubs adjacent to the gap is
+     less than MIN_JAMB_M (0.50 m), the gap is a doorway.  Short stubs are
+     door frames/jambs; this pattern appears in every floor-plan format without
+     any format-specific tuning.
 
-  8. COMPLETE      Add any missing outer wall side inferred from the room bounding box.
-
-  9. OPENINGS      Scan a ±14 px band along every wall centerline.
-                   a) GAP SCAN: runs of bright pixels (>148) ≥ MIN_OPENING_M wide →
-                      door (≤ MAX_DOOR_M) or structural window (> MAX_DOOR_M).
-                   b) WINDOW-SYMBOL SCAN: detect the CAD double-line window symbol
-                      (two narrow dark stripes bracketing a bright band, all within
-                      the wall band) → architectural window.
-
-  10. ROOMS        Seal doorway gaps in the wall mask (48×48 close kernel), then
-                   connected-component analysis on room-coloured pixels.
-
-All thresholds are general — no values hard-coded for a specific floor plan.
+  2. Width rule — otherwise, gaps ≤ MAX_DOOR_M (1.40 m) are doors and gaps up
+     to MAX_WINDOW_M (3.50 m) are windows.
 """
 
 from __future__ import annotations
@@ -68,10 +61,19 @@ except ImportError:
 
 # ── Tunable constants ─────────────────────────────────────────────────────────
 CROP_BRIGHT_TH    = 175   # floor-plan panel: pixels brighter than this
+# CAD format thresholds
 WALL_LO, WALL_HI  = 82,  148
 ROOM_LO, ROOM_HI  = 153, 244
+# SimpleDraw B&W format thresholds
+SD_WALL_LO, SD_WALL_HI = 0, 30
+SD_ROOM_LO, SD_ROOM_HI = 220, 255
+# Format detection
+SD_WHITE_TH   = 0.80   # fraction of pixels > 200 to trigger SimpleDraw mode
+SD_DARK_TH    = 0.02   # fraction of pixels < 30
+SD_MID_TH     = 0.08   # fraction in mid-tone (30-200); SimpleDraw has almost none
+
 GREEN_DIFF        = 22    # G-R and G-B delta for annotation suppression
-BORDER_CROP_PX    = 4     # absolute minimum border strip (overridden dynamically in _segment)
+BORDER_CROP_PX    = 36    # outer annotation-grid strip to ignore
 SKEL_MAX_ITER     = 80
 HOUGH_TH          = 7
 HOUGH_MIN_LEN     = 12
@@ -79,8 +81,8 @@ HOUGH_MAX_GAP     = 14
 AXIS_SNAP_TOL     = 12    # snap near-H/V lines to exact axes
 COORD_GROUP_TOL   = 11    # group collinear lines within this px distance
 MERGE_GAP         = 60    # max gap to bridge — covers doorway gaps (~50px at 61ppm)
-DEDUP_DIST        = 35    # max px between parallel double-edges to collapse (thick walls up to ~35px)
-MIN_WALL_PX       = 40    # discard wall segments shorter than this (covers noise arc artifacts)
+DEDUP_DIST        = 35    # max px between parallel double-edges to collapse (thick walls ~34px)
+MIN_WALL_PX       = 40    # discard wall segments shorter than this
 WALL_SEAL_PX      = 48    # kernel for doorway-sealing before room detection
 MIN_ROOM_PX       = 2000
 MAX_ROOM_ASPECT   = 14.0
@@ -88,16 +90,19 @@ FALLBACK_PPM      = 65.0  # px/m when tick detection fails
 
 # Opening detection
 MIN_OPENING_M     = 0.35  # minimum gap width treated as an opening (m)
-MAX_DOOR_M        = 1.40  # gaps wider than this → window (not door)
+MAX_DOOR_M        = 1.40  # gaps wider than this → window unless jamb rule fires
+MIN_JAMB_M        = 0.50  # if the shorter adjacent stub is under this → doorway
+                           # (short stubs are door frames/jambs in any floor plan)
 MAX_WINDOW_M      = 3.50  # gaps wider than this → noise, ignore
 SCAN_HALF_PX      = 14    # half-width of wall-band scan
-OPENING_BRIGHT    = 148   # mean brightness above this → opening pixel
+OPENING_BRIGHT    = 148   # mean brightness above this → opening pixel (CAD)
+SD_OPENING_BRIGHT = 200   # SimpleDraw: white space threshold
 
 # Window-symbol detection
 WIN_SYM_MIN_BRIGHT_PX = 6   # min bright pixels between two dark stripes
-WIN_SYM_MAX_TOTAL_M   = 3.0 # max total window symbol extent (m)
-WIN_SYM_MIN_TOTAL_M   = 0.3 # min total window symbol extent (m)
-WIN_SYM_DARK_TH       = 148 # pixel ≤ this = part of window frame
+WIN_SYM_MAX_TOTAL_M   = 3.0
+WIN_SYM_MIN_TOTAL_M   = 0.3
+WIN_SYM_DARK_TH       = 148
 
 
 # ── I/O ───────────────────────────────────────────────────────────────────────
@@ -203,93 +208,39 @@ def _detect_ppm(fp) -> float:
     return FALLBACK_PPM
 
 
-# ── Step 2b — dynamic border crop ────────────────────────────────────────────
-
-def _detect_border_crop(fp, green_mask_dilated) -> int:
-    """
-    Dynamically compute the border crop width for this image.
-
-    Instead of a fixed pixel count, we find the inner edge of the green
-    annotation frame by scanning inward from each edge until we find a row/
-    column where green coverage drops below a 10% threshold.
-    Then we add a small buffer (GREEN_BORDER_BUFFER px) to catch any
-    fringe pixels that sneak through the green mask.
-
-    For images with no green frame (or very thin frames like 3px) this
-    naturally returns a small value, protecting the outer walls.
-    For images with wide annotation bands (>30px) it returns a larger value.
-
-    Falls back to BORDER_CROP_PX_MIN if detection fails.
-    """
-    FH, FW = fp.shape[:2]
-    GREEN_BORDER_BUFFER = 8   # px of buffer beyond the last green row/col
-    MIN_GREEN_COV = 0.10      # row/col is "green" if ≥ 10% of its pixels are green
-
-    def scan_inward_top():
-        last_green_row = -1
-        for y in range(FH // 2):
-            cov = float(green_mask_dilated[y, :].sum()) / (255 * FW)
-            if cov >= MIN_GREEN_COV:
-                last_green_row = y
-            elif last_green_row >= 0:
-                break   # first row with no significant green after green zone
-        return last_green_row + 1 + GREEN_BORDER_BUFFER if last_green_row >= 0 else BORDER_CROP_PX
-
-    def scan_inward_bottom():
-        last_green_row = -1
-        for y in range(FH - 1, FH // 2, -1):
-            cov = float(green_mask_dilated[y, :].sum()) / (255 * FW)
-            if cov >= MIN_GREEN_COV:
-                last_green_row = y
-            elif last_green_row >= 0:
-                break
-        return (FH - last_green_row) + GREEN_BORDER_BUFFER if last_green_row >= 0 else BORDER_CROP_PX
-
-    def scan_inward_left():
-        last_green_col = -1
-        for x in range(FW // 2):
-            cov = float(green_mask_dilated[:, x].sum()) / (255 * FH)
-            if cov >= MIN_GREEN_COV:
-                last_green_col = x
-            elif last_green_col >= 0:
-                break
-        return last_green_col + 1 + GREEN_BORDER_BUFFER if last_green_col >= 0 else BORDER_CROP_PX
-
-    def scan_inward_right():
-        last_green_col = -1
-        for x in range(FW - 1, FW // 2, -1):
-            cov = float(green_mask_dilated[:, x].sum()) / (255 * FW)
-            if cov >= MIN_GREEN_COV:
-                last_green_col = x
-            elif last_green_col >= 0:
-                break
-        return (FW - last_green_col) + GREEN_BORDER_BUFFER if last_green_col >= 0 else BORDER_CROP_PX
-
-    top    = scan_inward_top()
-    bottom = scan_inward_bottom()
-    left   = scan_inward_left()
-    right  = scan_inward_right()
-
-    # Use the median of the four sides to avoid asymmetric layouts skewing things
-    # but never go below the absolute minimum
-    sides = sorted([top, bottom, left, right])
-    crop  = max(BORDER_CROP_PX, sides[1])   # median of 4 = middle two, take lower
-    # Safety cap: never crop more than 8% of the smaller image dimension
-    max_crop = int(min(FH, FW) * 0.08)
-    return min(crop, max_crop)
-
-
 # ── Step 3 — segmentation ─────────────────────────────────────────────────────
 
-def _segment(fp):
-    """Return (wall_mask, room_mask, border_crop) with annotation border stripped.
-    
-    The border width is determined dynamically from the green annotation frame
-    rather than a fixed constant — this handles floor plans of any size/scale.
+def _detect_format(fp) -> str:
     """
+    Return 'simpledraw' for high-contrast B&W drawings, 'cad' otherwise.
+
+    SimpleDraw exports: ~92% white (>200), ~7% black (<30), <1% mid-tone.
+    CAD exports: significant mid-tone (beige rooms + gray walls), coloured annotations.
+    """
+    gray = cv2.cvtColor(fp, cv2.COLOR_BGR2GRAY) if fp.ndim == 3 else fp
+    total = gray.size
+    pct_white = float((gray > 200).sum()) / total
+    pct_dark  = float((gray < 30).sum())  / total
+    pct_mid   = float(((gray >= 30) & (gray <= 200)).sum()) / total
+    if pct_white >= SD_WHITE_TH and pct_dark >= SD_DARK_TH and pct_mid <= SD_MID_TH:
+        return 'simpledraw'
+    return 'cad'
+
+
+def _segment(fp, fmt: str = 'cad'):
+    """Return (wall_mask, room_mask) with annotation border stripped."""
     gray  = cv2.cvtColor(fp, cv2.COLOR_BGR2GRAY) if fp.ndim == 3 else fp
     FH, FW = gray.shape
 
+    if fmt == 'simpledraw':
+        # B&W format: walls are near-black, background is near-white
+        wall_mask = cv2.inRange(gray, SD_WALL_LO, SD_WALL_HI)
+        room_mask = cv2.inRange(gray, SD_ROOM_LO, SD_ROOM_HI)
+        # No green annotation suppression needed (pure B&W)
+        # No border crop for SimpleDraw (no annotation margins)
+        return wall_mask, room_mask
+
+    # CAD format: coloured, with green annotations and beige rooms
     if fp.ndim == 3:
         b, g, r = cv2.split(fp)
         gi     = g.astype(np.int16)
@@ -298,21 +249,18 @@ def _segment(fp):
     else:
         green  = np.zeros_like(gray)
 
-    green_d = cv2.dilate(green, cv2.getStructuringElement(cv2.MORPH_RECT, (4, 4)))
-    not_g   = cv2.bitwise_not(green_d)
+    green  = cv2.dilate(green, cv2.getStructuringElement(cv2.MORPH_RECT, (4, 4)))
+    not_g  = cv2.bitwise_not(green)
 
     wall_mask = cv2.bitwise_and(cv2.inRange(gray, WALL_LO, WALL_HI), not_g)
     room_mask = cv2.bitwise_and(cv2.inRange(gray, ROOM_LO, ROOM_HI), not_g)
 
-    # Dynamic border crop: detect actual green frame extent instead of fixed px
-    b2 = _detect_border_crop(fp, green_d)
-    b2 = max(BORDER_CROP_PX, min(b2, FH // 4, FW // 4))  # sanity clamp
-
     inner = np.zeros((FH, FW), dtype=np.uint8)
+    b2    = BORDER_CROP_PX
     inner[b2:FH-b2, b2:FW-b2] = 255
     wall_mask = cv2.bitwise_and(wall_mask, inner)
     room_mask = cv2.bitwise_and(room_mask, inner)
-    return wall_mask, room_mask, b2
+    return wall_mask, room_mask
 
 
 # ── Step 4 — skeleton ─────────────────────────────────────────────────────────
@@ -343,8 +291,10 @@ def _snap(x1, y1, x2, y2):
         return mx, min(y1,y2), mx, max(y1,y2), 'V'
     return None
 
-def _merge(lines, orient, FH, FW, border_crop=BORDER_CROP_PX):
-    border = border_crop
+def _merge(lines, orient, FH, FW, min_wall_px=None):
+    if min_wall_px is None:
+        min_wall_px = MIN_WALL_PX
+    border = BORDER_CROP_PX
     lim    = FH if orient == 'H' else FW
     groups: dict[int, list] = {}
     for l in lines:
@@ -365,11 +315,11 @@ def _merge(lines, orient, FH, FW, border_crop=BORDER_CROP_PX):
             if a <= cb + MERGE_GAP:
                 cb = max(cb, b)
             else:
-                if cb - ca >= MIN_WALL_PX:
+                if cb - ca >= min_wall_px:
                     result.append((ca, fixed, cb, fixed) if orient == 'H'
                                   else (fixed, ca, fixed, cb))
                 ca, cb = a, b
-        if cb - ca >= MIN_WALL_PX:
+        if cb - ca >= min_wall_px:
             result.append((ca, fixed, cb, fixed) if orient == 'H'
                           else (fixed, ca, fixed, cb))
     return result
@@ -454,51 +404,16 @@ def _refine_centerlines(h_walls, v_walls, wall_mask):
     return refined_h, refined_v
 
 
-def _filter_edge_stubs(h_walls, v_walls, FH, FW, ppm, border_crop=BORDER_CROP_PX):
+def _detect_walls(wall_mask, min_wall_px=None):
     """
-    Remove short wall stubs that are artifacts of the image border annotation
-    (tick marks, frame corners) rather than real walls.
-
-    A stub is suspicious if:
-      1. It is shorter than STUB_MAX_M metres (too short to be a real wall), AND
-      2. It is within STUB_EDGE_PX pixels of any image edge.
-
-    STUB_EDGE_PX is derived from border_crop (the dynamically measured green-frame
-    width) so no values are hardcoded for a specific floor plan.
+    Detect walls from wall_mask.
+    min_wall_px: minimum wall segment length in pixels.
+                 Defaults to MIN_WALL_PX (40px).
+                 Pass a larger value (e.g. ppm*1.0) for SimpleDraw to filter
+                 door-arc artefacts which create 40-80px stub segments.
     """
-    STUB_MAX_M   = 0.60   # walls shorter than this are candidates for removal
-    STUB_EDGE_PX = border_crop * 2   # tick-mark stubs live within 2x the frame width
-
-    stub_max_px = int(STUB_MAX_M * ppm)
-
-    def near_edge(fixed, a, b, orient):
-        if orient == 'H':
-            # H-wall at y=fixed; near top or bottom edge?
-            return (fixed < STUB_EDGE_PX or fixed > FH - STUB_EDGE_PX or
-                    a < STUB_EDGE_PX or b > FW - STUB_EDGE_PX)
-        else:
-            # V-wall at x=fixed; near left or right edge?
-            return (fixed < STUB_EDGE_PX or fixed > FW - STUB_EDGE_PX or
-                    a < STUB_EDGE_PX or b > FH - STUB_EDGE_PX)
-
-    filtered_h = []
-    for x1, y, x2, _ in h_walls:
-        length_px = x2 - x1
-        if length_px < stub_max_px and near_edge(y, x1, x2, 'H'):
-            continue   # drop phantom edge stub
-        filtered_h.append((x1, y, x2, y))
-
-    filtered_v = []
-    for x, y1, _, y2 in v_walls:
-        length_px = y2 - y1
-        if length_px < stub_max_px and near_edge(x, y1, y2, 'V'):
-            continue   # drop phantom edge stub
-        filtered_v.append((x, y1, x, y2))
-
-    return filtered_h, filtered_v
-
-
-def _detect_walls(wall_mask, border_crop=BORDER_CROP_PX):
+    if min_wall_px is None:
+        min_wall_px = MIN_WALL_PX
     FH, FW = wall_mask.shape
     skel   = _skeleton(wall_mask)
     raw    = cv2.HoughLinesP(skel, 1, math.pi/180,
@@ -508,9 +423,8 @@ def _detect_walls(wall_mask, border_crop=BORDER_CROP_PX):
     if raw is None:
         return [], []
     axis  = [r for r in (_snap(*l[0]) for l in raw) if r]
-    H     = _dedup(_merge([l for l in axis if l[4]=='H'], 'H', FH, FW, border_crop), 'H')
-    V     = _dedup(_merge([l for l in axis if l[4]=='V'], 'V', FH, FW, border_crop), 'V')
-    # Refine approximate centerlines to true wall-body centers
+    H     = _dedup(_merge([l for l in axis if l[4]=='H'], 'H', FH, FW, min_wall_px), 'H')
+    V     = _dedup(_merge([l for l in axis if l[4]=='V'], 'V', FH, FW, min_wall_px), 'V')
     H, V  = _refine_centerlines(H, V, wall_mask)
     return H, V
 
@@ -635,48 +549,77 @@ def _sample_wall_band(fp_gray, orient, fixed, pos, half=SCAN_HALF_PX):
     return float(_np.median(strip))
 
 
-def _find_gap_openings(fp_gray, orient, fixed, a, b, ppm):
+def _find_gap_openings(fp_gray, orient, fixed, a, b, ppm, opening_bright=None):
     """
-    Scan along wall from a->b.  Find contiguous runs of positions where the
-    wall band is bright (mean > OPENING_BRIGHT) -- these are structural gaps
-    (doors or wide windows).
+    Scan along wall from a→b.  Find contiguous bright runs (openings).
 
-    Endpoint filter: gaps that touch either wall endpoint are the FREE END of
-    the wall (open room space), not a real door/window.  We require the gap
-    to be flanked by wall pixels on BOTH sides.
+    Returns list of (gs, ge, gpx, kind) where kind is 'door' or 'window',
+    classified by two format-independent rules:
+
+      Jamb rule  — if the shorter of the two wall stubs adjacent to the gap
+                   is < MIN_JAMB_M, the gap is a doorway regardless of width.
+                   Short stubs are door frames; this pattern exists in every
+                   floor-plan format without any format-specific tuning.
+
+      Width rule — otherwise, gap ≤ MAX_DOOR_M → door; > MAX_DOOR_M → window.
+
+    Endpoint guard: gaps spanning ≥90% of the wall AND touching an endpoint
+    are discarded (open wall ends, not real openings).  Gaps at endpoints that
+    don't span the whole wall are kept (real openings near corners).
     """
-    min_px  = max(2, int(MIN_OPENING_M * ppm))
-    max_win = int(MAX_WINDOW_M * ppm)
-    # Guard: a real opening must have at least this many wall-px before & after it
-    endpoint_guard = min_px
+    if opening_bright is None:
+        opening_bright = OPENING_BRIGHT
+    min_px   = max(2, int(MIN_OPENING_M * ppm))
+    max_win  = int(MAX_WINDOW_M * ppm)
+    max_door = int(MAX_DOOR_M   * ppm)
+    min_jamb = int(MIN_JAMB_M   * ppm)
+    wall_len = b - a
 
     bright_run, gap_start = 0, None
-    gaps = []
+    raw_gaps = []
 
     for i in range(a, b + 1):
         mean = _sample_wall_band(fp_gray, orient, fixed, i)
-        is_open = mean > OPENING_BRIGHT
-
+        is_open = mean > opening_bright
         if is_open:
             if gap_start is None: gap_start = i
             bright_run += 1
         else:
             if gap_start is not None and bright_run >= min_px:
-                gaps.append((gap_start, i-1, bright_run))
+                raw_gaps.append((gap_start, i - 1, bright_run))
             gap_start = None; bright_run = 0
-
     if gap_start is not None and bright_run >= min_px:
-        gaps.append((gap_start, b, bright_run))
+        raw_gaps.append((gap_start, b, bright_run))
 
     results = []
-    max_door_px = int(MAX_DOOR_M * ppm)
-    for gs, ge, gpx in gaps:
-        if gpx > max_win: continue
-        # FIX: Discard gaps touching either wall endpoint -- those are open
-        # wall ends (room interior spilling in), not structural openings.
-        if gs <= a + endpoint_guard or ge >= b - endpoint_guard:
+    for gs, ge, gpx in raw_gaps:
+        if gpx > max_win:
             continue
-        kind = "door" if gpx <= max_door_px else "window"
+        at_start    = gs <= a + 2
+        at_end      = ge >= b - 2
+        spans_whole = gpx >= wall_len * 0.90
+
+        # Filter 1: gap spans ≥90% of wall and touches either endpoint → open end
+        if spans_whole and (at_start or at_end):
+            continue
+        # Filter 2: gap reaches wall END (not start) and spans ≥60% → jamb stub
+        if at_end and not at_start and gpx >= wall_len * 0.60:
+            continue
+        # Filter 3: gap touches wall START and spans ≥60% → jamb stub on far side
+        if at_start and not at_end and gpx >= wall_len * 0.60:
+            continue
+
+        # Classify: width rule takes priority over jamb rule when gap clearly exceeds door max
+        left_stub_px  = gs - a   # pixels from wall start to gap start
+        right_stub_px = b - ge   # pixels from gap end to wall end
+        min_stub_px   = min(left_stub_px, right_stub_px)
+        # If gap width is clearly window-sized, don't let a missing jamb override it
+        if gpx > max_door and min_stub_px < min_jamb:
+            kind = "window"   # wide gap touching wall edge = inter-segment window
+        elif min_stub_px < min_jamb or gpx <= max_door:
+            kind = "door"
+        else:
+            kind = "window"
         results.append((gs, ge, gpx, kind))
     return results
 
@@ -737,18 +680,29 @@ def _find_window_symbols(fp_gray, orient, fixed, a, b, ppm):
     return [(gs, ge, gpx, "window") for gs, ge, gpx in windows]
 
 
-def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None):
+def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm,
+                                opening_bright=None,
+                                scan_h=None, scan_v=None,
+                                bbox=None, fmt='cad'):
     """
-    Returns list of opening dicts:
-      wall_id, orient, t_start, t_end, t_center, width_m, kind,
-      x_px, y_px (image coords), x, y (metres, pre-Y-flip),
-      swing_side: 'left'|'right' relative to wall travel direction.
+    Returns list of opening dicts.
 
-    Detects openings in two passes:
-      1. Intra-segment: bright gaps WITHIN a single wall segment (existing logic).
-      2. Inter-segment: bright gaps BETWEEN two collinear wall stubs on the same
-         line — these are door/window openings too large for MERGE_GAP to bridge.
+    opening_bright: brightness threshold (CAD: 148, SimpleDraw: 200).
+    scan_h / scan_v: wall lists for inter-segment scanning; may include shorter
+      stubs than h_walls/v_walls (the rendered walls).  Falls back to h/v_walls.
+    bbox: (xmin, ymin, xmax, ymax) px — openings outside are discarded.
+
+    Classification uses two format-independent rules (see module docstring):
+      1. Jamb rule  — short adjacent stub → door
+      2. Width rule — gap width vs MAX_DOOR_M / MAX_WINDOW_M
     """
+    if opening_bright is None:
+        opening_bright = OPENING_BRIGHT
+    if scan_h is None:
+        scan_h = h_walls
+    if scan_v is None:
+        scan_v = v_walls
+
     openings = []
     wall_id  = 0
     FH, FW   = fp_gray.shape
@@ -791,6 +745,14 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
         else:
             xp = fixed;           yp = (gs + ge) // 2
             xm = xp / ppm;       ym = yp / ppm
+        # Discard openings outside the building bounding box
+        if bbox is not None:
+            bx0, by0, bx1, by1 = bbox
+            margin = 5  # px tolerance
+            if xp < bx0 - margin or xp > bx1 + margin:
+                return
+            if yp < by0 - margin or yp > by1 + margin:
+                return
         side = room_side(orient, fixed, xp if orient == 'H' else yp)
         openings.append({
             "wall_id":    wall_id,
@@ -810,8 +772,6 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
                    bright_start, bright_end, kind):
         """
         Emit an opening that lives in the GAP between two collinear wall stubs.
-        We attach it to the LEFT/LOWER stub (wall_id_left) and express t > 1.0
-        so split_wall_at_openings can clip it. The position x/y is in metres.
         """
         gpx = bright_end - bright_start + 1
         wm  = gpx / ppm
@@ -821,13 +781,19 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
         else:
             xp = fixed; yp = (bright_start + bright_end) // 2
             xm = xp / ppm; ym = yp / ppm
+        # Discard openings outside the building bounding box
+        if bbox is not None:
+            bx0, by0, bx1, by1 = bbox
+            margin = 5
+            if xp < bx0 - margin or xp > bx1 + margin:
+                return
+            if yp < by0 - margin or yp > by1 + margin:
+                return
         side = room_side(orient, fixed, xp if orient == 'H' else yp)
-        # Store as a standalone opening — pipeline's _build_raster_openings
-        # will match it to the nearest wall by world position.
         openings.append({
-            "wall_id":    wall_id_left,  # nearest stub (for dedup checks)
+            "wall_id":    wall_id_left,
             "orient":     orient,
-            "t_start":    -1.0,   # sentinel: inter-segment (not inside any stub)
+            "t_start":    -1.0,
             "t_end":      -1.0,
             "t_center":   -1.0,
             "width_m":    round(wm, 3),
@@ -840,25 +806,16 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
 
     # ── PASS 1: Intra-segment gaps ────────────────────────────────────────────
     for x1, y, x2, _ in h_walls:
-        gaps = _find_gap_openings(fp_gray, 'H', y, x1, x2, ppm)
+        gaps = _find_gap_openings(fp_gray, 'H', y, x1, x2, ppm, opening_bright)
         for gs, ge, gpx, kind in gaps:
             emit(wall_id, 'H', y, x1, x2, gs, ge, gpx, kind)
-        # Window symbol scan for H walls too (catches CAD double-line windows)
-        syms = _find_window_symbols(fp_gray, 'H', y, x1, x2, ppm)
-        for gs, ge, gpx, kind in syms:
-            already = any(
-                abs(op["x_px"] - (gs + ge) // 2) < gpx and abs(op["y_px"] - y) < 5
-                for op in openings if op["wall_id"] == wall_id
-            )
-            if not already:
-                emit(wall_id, 'H', y, x1, x2, gs, ge, gpx, kind)
         wall_id += 1
 
     for x, y1, _, y2 in v_walls:
-        gaps = _find_gap_openings(fp_gray, 'V', x, y1, y2, ppm)
+        gaps = _find_gap_openings(fp_gray, 'V', x, y1, y2, ppm, opening_bright)
         for gs, ge, gpx, kind in gaps:
             emit(wall_id, 'V', x, y1, y2, gs, ge, gpx, kind)
-        syms = _find_window_symbols(fp_gray, 'V', x, y1, y2, ppm)
+        syms = _find_window_symbols(fp_gray, 'V', x, y1, y2, ppm) if fmt == 'cad' else []
         for gs, ge, gpx, kind in syms:
             already = any(
                 abs(op["x_px"] - x) < 5 and abs(op["y_px"] - (gs + ge) // 2) < gpx
@@ -869,69 +826,57 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
         wall_id += 1
 
     # ── PASS 2: Inter-segment gaps (collinear wall stubs) ────────────────────
-    # Group H-walls by y, V-walls by x.  For each group of 2+ stubs on the
-    # same line, check the GAP between them for bright (room-visible) pixels.
-    # If the bright span is a valid door/window width, emit it.
     from collections import defaultdict
-    max_door_px   = int(MAX_DOOR_M * ppm)
-    max_win_px    = int(MAX_WINDOW_M * ppm)
-    min_open_px   = max(2, int(MIN_OPENING_M * ppm))
+    max_door_px = int(MAX_DOOR_M    * ppm)
+    max_win_px  = int(MAX_WINDOW_M  * ppm)
+    min_open_px = max(2, int(MIN_OPENING_M * ppm))
+    min_jamb_px = int(MIN_JAMB_M    * ppm)
 
-    # Group walls by their fixed coordinate with tolerance so near-collinear
-    # stubs (same wall, slightly different y/x from skeleton noise) end up in
-    # the same bucket and their inter-stub gap is scanned for openings.
-    def _group_by_fixed(walls, orient):
-        """Return dict: representative_fixed → [(a, b, wall_id), ...]"""
-        groups = {}   # rep_key → list
-        wid_map = {}  # original wall tuple → wall_id
-        _w = 0
-        for wall in walls:
-            fixed = wall[1] if orient == 'H' else wall[0]
-            a     = wall[0] if orient == 'H' else wall[1]
-            b     = wall[2] if orient == 'H' else wall[3]
-            key   = next((k for k in groups if abs(k - fixed) <= COORD_GROUP_TOL), None)
-            if key is None:
-                key = fixed; groups[key] = []
-            groups[key].append((a, b, _w))
-            _w += 1
-        return groups
-
-    h_by_y = _group_by_fixed(h_walls, 'H')
-    _wid = len(h_walls)
-
-    v_by_x = {}
-    _v_walls_offset = _wid
-    for x, y1, _, y2 in v_walls:
-        key = next((k for k in v_by_x if abs(k - x) <= COORD_GROUP_TOL), None)
-        if key is None:
-            key = x; v_by_x[key] = []
-        v_by_x[key].append((y1, y2, _wid))
+    h_by_y = defaultdict(list)
+    _wid = 0
+    for x1, y, x2, _ in scan_h:
+        canonical_y = y
+        for existing_y in h_by_y:
+            if abs(existing_y - y) <= COORD_GROUP_TOL:
+                canonical_y = existing_y
+                break
+        h_by_y[canonical_y].append((x1, x2, x2 - x1, _wid))
         _wid += 1
 
-    DEDUP_RADIUS_PX = max(12, int(ppm * 0.5))   # ~0.5m; adapts to image scale
+    v_by_x = defaultdict(list)
+    for x, y1, _, y2 in scan_v:
+        # Snap to nearest existing key within COORD_GROUP_TOL to handle sub-pixel
+        # jitter between collinear stubs detected at slightly different x positions.
+        canonical_x = x
+        for existing_x in v_by_x:
+            if abs(existing_x - x) <= COORD_GROUP_TOL:
+                canonical_x = existing_x
+                break
+        v_by_x[canonical_x].append((y1, y2, y2 - y1, _wid))
+        _wid += 1
 
     for y, segs in h_by_y.items():
         segs.sort()
         for i in range(len(segs) - 1):
-            x_left_end   = segs[i][1]
+            x_left_end    = segs[i][1]
             x_right_start = segs[i + 1][0]
-            wid_left     = segs[i][2]
+            left_len_px   = segs[i][2]
+            right_len_px  = segs[i + 1][2]
+            wid_left      = segs[i][3]
             if x_right_start <= x_left_end:
-                # Stubs overlap — but a window may still exist within their combined range.
-                # Scan the UNION of both stubs for a sufficiently wide bright gap.
+                # Stubs overlap — scan combined range for a large bright gap
+                # (can happen when a thick-wall skeleton segment crosses a window opening)
                 combined_start = segs[i][0]
                 combined_end   = segs[i + 1][1]
                 gap_mid = (combined_start + combined_end) // 2
-                already = any(abs(op["x_px"] - gap_mid) < DEDUP_RADIUS_PX and abs(op["y_px"] - y) < DEDUP_RADIUS_PX
-                              for op in openings)
-                if already:
+                if any(abs(op["x_px"] - gap_mid) < 10 and abs(op["y_px"] - y) < 10
+                       for op in openings):
                     continue
-                # Find any bright gap within the combined range
                 b_start = b_end = None; bright_run = 0
                 best_gs = best_ge = best_gpx = None
                 for x in range(combined_start, combined_end + 1):
                     v = _sample_wall_band(fp_gray, 'H', y, x)
-                    if v > OPENING_BRIGHT:
+                    if v > opening_bright:
                         if b_start is None: b_start = x
                         b_end = x; bright_run += 1
                     else:
@@ -944,21 +889,22 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
                         best_gs, best_ge, best_gpx = b_start, b_end, bright_run
                 if best_gs is None or best_gpx > max_win_px:
                     continue
-                kind = "door" if best_gpx <= max_door_px else "window"
+                kind = "window" if best_gpx > max_door_px else "door"
                 emit_inter(wid_left, 'H', y, combined_start, combined_end,
                            best_gs, best_ge, kind)
                 continue
-            # Skip if this gap is already an intra-segment gap somewhere
-            gap_mid = (x_left_end + x_right_start) // 2
-            already = any(abs(op["x_px"] - gap_mid) < DEDUP_RADIUS_PX and abs(op["y_px"] - y) < DEDUP_RADIUS_PX
-                          for op in openings)
-            if already:
+            # Skip T-junctions: a perpendicular (V) wall crosses through this gap
+            if any(x_left_end < vx <= x_right_start
+                   for vx, vy1, _, vy2 in scan_v if vy1 <= y <= vy2):
                 continue
-            # Scan the gap for bright pixels
+            gap_mid = (x_left_end + x_right_start) // 2
+            if any(abs(op["x_px"] - gap_mid) < 10 and abs(op["y_px"] - y) < 10
+                   for op in openings):
+                continue
             b_start = b_end = None
             for x in range(x_left_end, x_right_start + 1):
                 v = _sample_wall_band(fp_gray, 'H', y, x)
-                if v > OPENING_BRIGHT:
+                if v > opening_bright:
                     if b_start is None: b_start = x
                     b_end = x
             if b_start is None:
@@ -966,7 +912,8 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
             gpx = b_end - b_start + 1
             if gpx < min_open_px or gpx > max_win_px:
                 continue
-            kind = "door" if gpx <= max_door_px else "window"
+            min_stub = min(left_len_px, right_len_px)
+            kind = "door" if (min_stub < min_jamb_px or gpx <= max_door_px) else "window"
             emit_inter(wid_left, 'H', y, x_left_end, x_right_start,
                        b_start, b_end, kind)
 
@@ -975,21 +922,22 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
         for i in range(len(segs) - 1):
             y_top_end    = segs[i][1]
             y_bot_start  = segs[i + 1][0]
-            wid_left     = segs[i][2]
+            top_len_px   = segs[i][2]
+            bot_len_px   = segs[i + 1][2]
+            wid_left     = segs[i][3]
             if y_bot_start <= y_top_end:
-                # Overlapping stubs — scan combined range for a large bright gap
+                # Stubs overlap — scan combined range for a large bright gap
                 combined_start = segs[i][0]
                 combined_end   = segs[i + 1][1]
                 gap_mid = (combined_start + combined_end) // 2
-                already = any(abs(op["x_px"] - x) < DEDUP_RADIUS_PX and abs(op["y_px"] - gap_mid) < DEDUP_RADIUS_PX
-                              for op in openings)
-                if already:
+                if any(abs(op["x_px"] - x) < 10 and abs(op["y_px"] - gap_mid) < 10
+                       for op in openings):
                     continue
                 b_start = b_end = None; bright_run = 0
                 best_gs = best_ge = best_gpx = None
                 for y in range(combined_start, combined_end + 1):
                     v = _sample_wall_band(fp_gray, 'V', x, y)
-                    if v > OPENING_BRIGHT:
+                    if v > opening_bright:
                         if b_start is None: b_start = y
                         b_end = y; bright_run += 1
                     else:
@@ -1002,19 +950,22 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
                         best_gs, best_ge, best_gpx = b_start, b_end, bright_run
                 if best_gs is None or best_gpx > max_win_px:
                     continue
-                kind = "door" if best_gpx <= max_door_px else "window"
+                kind = "window" if best_gpx > max_door_px else "door"
                 emit_inter(wid_left, 'V', x, combined_start, combined_end,
                            best_gs, best_ge, kind)
                 continue
+            # Skip T-junctions: a perpendicular (H) wall crosses through this gap
+            if any(y_top_end < hy <= y_bot_start
+                   for hx1, hy, hx2, _ in scan_h if hx1 <= x <= hx2):
+                continue
             gap_mid = (y_top_end + y_bot_start) // 2
-            already = any(abs(op["x_px"] - x) < DEDUP_RADIUS_PX and abs(op["y_px"] - gap_mid) < DEDUP_RADIUS_PX
-                          for op in openings)
-            if already:
+            if any(abs(op["x_px"] - x) < 10 and abs(op["y_px"] - gap_mid) < 10
+                   for op in openings):
                 continue
             b_start = b_end = None
             for y in range(y_top_end, y_bot_start + 1):
                 v = _sample_wall_band(fp_gray, 'V', x, y)
-                if v > OPENING_BRIGHT:
+                if v > opening_bright:
                     if b_start is None: b_start = y
                     b_end = y
             if b_start is None:
@@ -1022,181 +973,71 @@ def _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop=None
             gpx = b_end - b_start + 1
             if gpx < min_open_px or gpx > max_win_px:
                 continue
-            kind = "door" if gpx <= max_door_px else "window"
+            min_stub = min(top_len_px, bot_len_px)
+            kind = "door" if (min_stub < min_jamb_px or gpx <= max_door_px) else "window"
             emit_inter(wid_left, 'V', x, y_top_end, y_bot_start,
                        b_start, b_end, kind)
 
-    # ── PASS 3: T-junction gaps (inner wall endpoint near outer wall body) ──────
-    # Pattern: an inner V-wall stub starts at y_start which is close to (but NOT
-    # touching) the bottom edge of a horizontal outer wall.  The gap between the
-    # outer wall's bottom face and the inner wall's top endpoint is a door opening.
-    # Same logic applies in all four T-junction orientations.
-    #
-    # Strategy:
-    #   For every V-wall endpoint (y_start or y_end), check if there is an H-wall
-    #   whose centerline is within WALL_HALF_PX (≈ half wall thickness) of the
-    #   endpoint, and if the gap between them (in image pixels) looks bright.
-    #   Similarly for every H-wall endpoint near a V-wall.
-
-    WALL_HALF_PX  = 20   # half wall thickness in pixels — endpoint tolerance
-    T_GAP_MAX_PX  = int(MAX_DOOR_M * ppm) + WALL_HALF_PX   # maximum gap to scan
-    T_GAP_MIN_PX  = max(2, int(MIN_OPENING_M * ppm))
-    # Guard: reject T-junction gaps whose scan range touches the image edge.
-    # Annotation tick marks at corners produce short stubs near the border;
-    # their "gap" spans from the border all the way to the first real wall.
-    # Any gap that starts within EDGE_GUARD px of an image edge is an artifact.
-    # Use the dynamically measured border_crop so no values are hardcoded per image.
-    EDGE_GUARD = border_crop if border_crop is not None else BORDER_CROP_PX
-
-    # Build lookup: H-walls by y, V-walls by x (reuse above dicts)
-    # h_by_y and v_by_x already built above
-
-    def scan_tjunction_gap(orient_inner, fixed_inner, endpoint_px,
-                            fixed_outer, a_outer, b_outer):
-        """
-        Scan the gap between inner wall endpoint and outer wall face for brightness.
-        orient_inner: orientation of the inner wall ('V' or 'H')
-        fixed_inner:  x (V-wall) or y (H-wall) coordinate of inner wall
-        endpoint_px:  y (V) or x (H) of the inner wall's tip
-        fixed_outer:  y (H-wall) or x (V-wall) of the outer wall
-        a_outer, b_outer: range of outer wall along its axis
-        Returns (bright_start, bright_end, kind) or None.
-        """
-        # Inner wall's tip must be within the outer wall's extent
-        if orient_inner == 'V':
-            # Inner=V at x=fixed_inner; tip at y=endpoint_px; outer=H at y=fixed_outer
-            if not (a_outer - WALL_HALF_PX <= fixed_inner <= b_outer + WALL_HALF_PX):
-                return None
-            # Determine gap direction: is endpoint_px above or below outer wall?
-            if endpoint_px < fixed_outer:
-                # inner wall tip is ABOVE outer wall (gap runs from endpoint_px to fixed_outer)
-                scan_start = endpoint_px
-                scan_end   = fixed_outer + WALL_HALF_PX
-            else:
-                # inner wall tip is BELOW outer wall
-                scan_start = fixed_outer - WALL_HALF_PX
-                scan_end   = endpoint_px
-            gap_range = scan_end - scan_start
-            if gap_range < T_GAP_MIN_PX or gap_range > T_GAP_MAX_PX:
-                return None
-            # Reject gaps that touch the image edge (annotation tick mark artifacts)
-            if scan_start < EDGE_GUARD or scan_end > FH - EDGE_GUARD:
-                return None
-            # Scan brightness along x=fixed_inner from scan_start to scan_end
-            b_start = b_end = None
-            for y in range(max(0, scan_start), min(FH - 1, scan_end) + 1):
-                v = _sample_wall_band(fp_gray, 'V', fixed_inner, y)
-                if v > OPENING_BRIGHT:
-                    if b_start is None: b_start = y
-                    b_end = y
-            if b_start is None:
-                return None
-            gpx = b_end - b_start + 1
-            if gpx < T_GAP_MIN_PX or gpx > T_GAP_MAX_PX:
-                return None
-            kind = "door" if gpx <= int(MAX_DOOR_M * ppm) else "window"
-            return (b_start, b_end, kind)
-
-        else:
-            # orient_inner == 'H'
-            # Inner=H at y=fixed_inner; tip at x=endpoint_px; outer=V at x=fixed_outer
-            if not (a_outer - WALL_HALF_PX <= fixed_inner <= b_outer + WALL_HALF_PX):
-                return None
-            if endpoint_px < fixed_outer:
-                scan_start = endpoint_px
-                scan_end   = fixed_outer + WALL_HALF_PX
-            else:
-                scan_start = fixed_outer - WALL_HALF_PX
-                scan_end   = endpoint_px
-            gap_range = scan_end - scan_start
-            if gap_range < T_GAP_MIN_PX or gap_range > T_GAP_MAX_PX:
-                return None
-            # Reject gaps that touch the image edge (annotation tick mark artifacts)
-            if scan_start < EDGE_GUARD or scan_end > FW - EDGE_GUARD:
-                return None
-            b_start = b_end = None
-            for x in range(max(0, scan_start), min(FW - 1, scan_end) + 1):
-                v = _sample_wall_band(fp_gray, 'H', fixed_inner, x)
-                if v > OPENING_BRIGHT:
-                    if b_start is None: b_start = x
-                    b_end = x
-            if b_start is None:
-                return None
-            gpx = b_end - b_start + 1
-            if gpx < T_GAP_MIN_PX or gpx > T_GAP_MAX_PX:
-                return None
-            kind = "door" if gpx <= int(MAX_DOOR_M * ppm) else "window"
-            return (b_start, b_end, kind)
-
-    # V-wall endpoints near H-walls
-    DEDUP_RADIUS_PX = max(12, int(ppm * 0.5))   # ~0.5m; adapts to image scale
-    h_wall_list = list(h_by_y.items())   # [(y, [(x1, x2, wid), ...]), ...]
-    for x, v_segs in v_by_x.items():
-        for y1, y2, _wid in v_segs:
-            for endpoint_y in (y1, y2):
-                # Find H-walls whose y is within WALL_HALF_PX of this endpoint
-                for hy, h_segs in h_wall_list:
-                    if abs(hy - endpoint_y) > WALL_HALF_PX:
-                        continue
-                    for hx1, hx2, h_wid in h_segs:
-                        result = scan_tjunction_gap('V', x, endpoint_y, hy, hx1, hx2)
-                        if result is None:
-                            continue
-                        b_start, b_end, kind = result
-                        gap_mid_x = x
-                        gap_mid_y = (b_start + b_end) // 2
-                        # Dedup: skip if already have an opening very close
-                        already = any(
-                            abs(op["x_px"] - gap_mid_x) < DEDUP_RADIUS_PX and
-                            abs(op["y_px"] - gap_mid_y) < DEDUP_RADIUS_PX
-                            for op in openings
-                        )
-                        if already:
-                            continue
-                        emit_inter(_wid, 'V', x, endpoint_y, hy,
-                                   b_start, b_end, kind)
-
-    # H-wall endpoints near V-walls
-    v_wall_list = list(v_by_x.items())   # [(x, [(y1, y2, wid), ...]), ...]
-    for y, h_segs in h_by_y.items():
-        for x1, x2, _wid in h_segs:
-            for endpoint_x in (x1, x2):
-                for vx, v_segs in v_wall_list:
-                    if abs(vx - endpoint_x) > WALL_HALF_PX:
-                        continue
-                    for vy1, vy2, v_wid in v_segs:
-                        result = scan_tjunction_gap('H', y, endpoint_x, vx, vy1, vy2)
-                        if result is None:
-                            continue
-                        b_start, b_end, kind = result
-                        gap_mid_x = (b_start + b_end) // 2
-                        gap_mid_y = y
-                        already = any(
-                            abs(op["x_px"] - gap_mid_x) < DEDUP_RADIUS_PX and
-                            abs(op["y_px"] - gap_mid_y) < DEDUP_RADIUS_PX
-                            for op in openings
-                        )
-                        if already:
-                            continue
-                        emit_inter(_wid, 'H', y, endpoint_x, vx,
-                                   b_start, b_end, kind)
-
-    # ── PASS 4: Global opening dedup ─────────────────────────────────────────
-    # When a thick wall is detected as two parallel lines, openings on both
-    # faces are found independently.  Collapse any pair that is within
-    # DEDUP_RADIUS_PX of each other in BOTH axes, keeping the first one found.
-    FINAL_DEDUP_PX = max(15, int(ppm * 0.35))   # ~35cm tolerance
+    # ── Deduplicate: remove openings at same position ────────────────────────
+    # Can arise when thick walls produce two face-lines, each independently detecting
+    # the same opening. Use a generous radius that adapts to image scale.
+    FINAL_DEDUP_PX = max(20, int(ppm * 0.35))   # ~35cm in image pixels
     deduped = []
     for op in openings:
         duplicate = any(
-            abs(op["x_px"] - kept["x_px"]) < FINAL_DEDUP_PX and
-            abs(op["y_px"] - kept["y_px"]) < FINAL_DEDUP_PX and
-            op["kind"] == kept["kind"]
-            for kept in deduped
+            abs(op["x_px"] - ex["x_px"]) < FINAL_DEDUP_PX and
+            abs(op["y_px"] - ex["y_px"]) < FINAL_DEDUP_PX and
+            op["kind"] == ex["kind"]
+            for ex in deduped
         )
         if not duplicate:
             deduped.append(op)
+
     return deduped
+
+
+def _estimate_ppm_simpledraw(fp_gray) -> float:
+    """
+    Estimate pixels-per-metre for SimpleDraw exports.
+    SimpleDraw walls are drawn at a fixed architectural scale.
+    We detect the median wall thickness (30px is typical) and assume
+    walls are 0.30m thick → ppm = wall_thickness_px / 0.30.
+    Falls back to FALLBACK_PPM if detection fails.
+    """
+    wall_mask = cv2.inRange(fp_gray, SD_WALL_LO, SD_WALL_HI)
+    FH, FW = fp_gray.shape
+    thicknesses = []
+    # Sample multiple horizontal and vertical profiles
+    for y in [FH//4, FH//3, FH//2, 2*FH//3, 3*FH//4]:
+        row = wall_mask[y, :]
+        run, start = 0, None
+        for x in range(FW):
+            if row[x] > 0:
+                if start is None: start = x
+                run += 1
+            else:
+                if start is not None and run > 3:
+                    thicknesses.append(run)
+                run, start = 0, None
+    for x in [FW//4, FW//3, FW//2, 2*FW//3, 3*FW//4]:
+        col = wall_mask[:, x]
+        run, start = 0, None
+        for y in range(FH):
+            if col[y] > 0:
+                if start is None: start = y
+                run += 1
+            else:
+                if start is not None and run > 3:
+                    thicknesses.append(run)
+                run, start = 0, None
+    if not thicknesses:
+        return FALLBACK_PPM
+    # Use median of measured thicknesses; typical architectural wall = 0.30m
+    med = sorted(thicknesses)[len(thicknesses) // 2]
+    wall_m = 0.30   # assumed standard wall thickness
+    ppm = med / wall_m
+    # Clamp to plausible range
+    return max(40.0, min(200.0, round(ppm, 2)))
 
 
 # ── Step 10 — room detection ──────────────────────────────────────────────────
@@ -1304,17 +1145,57 @@ class RasterParser:
         FH, FW = fp.shape[:2]
         fp_gray = cv2.cvtColor(fp, cv2.COLOR_BGR2GRAY) if fp.ndim == 3 else fp
 
-        ppm = self._ppm_override if self._ppm_override > 0.0 else _detect_ppm(fp)
+        # ── Format detection ──────────────────────────────────────────────────
+        fmt = _detect_format(fp)
+        is_simpledraw = (fmt == 'simpledraw')
+
+        # Choose brightness threshold for opening detection
+        ob = SD_OPENING_BRIGHT if is_simpledraw else OPENING_BRIGHT
+
+        # PPM: SimpleDraw has no tick annotations; estimate from wall thickness
+        if self._ppm_override > 0.0:
+            ppm = self._ppm_override
+        elif is_simpledraw:
+            ppm = _estimate_ppm_simpledraw(fp_gray)
+        else:
+            ppm = _detect_ppm(fp)
         self._last_ppm = ppm
 
-        wall_mask, room_mask, border_crop = _segment(fp)
+        wall_mask, room_mask = _segment(fp, fmt)
 
-        h_walls, v_walls  = _detect_walls(wall_mask, border_crop)
+        if is_simpledraw:
+            # Two-pass wall detection for SimpleDraw:
+            #   Render walls: min 1.0m (100px) — suppresses door-arc artefacts
+            #   Scan walls:   min 0.4m ( 40px) — keeps short door-frame stubs
+            #     needed for inter-segment gap detection (left wall top stub = 45px)
+            min_wp_render = int(ppm * 1.0)
+            min_wp_scan   = int(ppm * 0.4)
+            h_walls, v_walls       = _detect_walls(wall_mask, min_wall_px=min_wp_render)
+            h_scan,  v_scan        = _detect_walls(wall_mask, min_wall_px=min_wp_scan)
+        else:
+            h_walls, v_walls       = _detect_walls(wall_mask)
+            h_scan,  v_scan        = h_walls, v_walls
+
         h_walls, v_walls  = _complete_outer_walls(h_walls, v_walls, FH, FW)
-        h_walls, v_walls  = _filter_edge_stubs(h_walls, v_walls, FH, FW, ppm, border_crop)
+        h_scan,  v_scan   = _complete_outer_walls(h_scan,  v_scan,  FH, FW)
 
-        img_openings      = _detect_openings_from_image(fp_gray, h_walls, v_walls, ppm, border_crop)
-        rooms_px          = _detect_rooms(room_mask, wall_mask)
+        # Building bounding box (pixel coords) — used to discard openings whose
+        # centre lies outside the building perimeter (e.g. gaps beyond outer walls).
+        all_scan_coords_x = [c for x1,y,x2,_ in h_scan for c in (x1, x2)] + \
+                            [x for x,y1,_,y2 in v_scan]
+        all_scan_coords_y = [y for x1,y,x2,_ in h_scan] + \
+                            [c for x,y1,_,y2 in v_scan for c in (y1, y2)]
+        bbox = (min(all_scan_coords_x, default=0),
+                min(all_scan_coords_y, default=0),
+                max(all_scan_coords_x, default=FW),
+                max(all_scan_coords_y, default=FH)) if all_scan_coords_x else None
+
+        img_openings = _detect_openings_from_image(
+            fp_gray, h_walls, v_walls, ppm, opening_bright=ob,
+            scan_h=h_scan, scan_v=v_scan,
+            bbox=bbox, fmt=fmt,
+        )
+        rooms_px = _detect_rooms(room_mask, wall_mask)
 
         all_walls  = h_walls + v_walls
         wall_segs  = [_to_seg(x1, y1, x2, y2, ppm, FH) for x1, y1, x2, y2 in all_walls]
@@ -1338,12 +1219,13 @@ class RasterParser:
             }
         result.units = "meters"
         result.metadata_extra = {
-            "source":           "raster_v5",
+            "source":           "raster_v6",
+            "format":           fmt,
             "original_size":    f"{OW}x{OH}px",
             "cropped_size":     f"{FW}x{FH}px",
             "crop_bbox":        [cx0, cy0, cx1, cy1],
             "pixels_per_meter": round(ppm, 2),
-            "ppm_source":       "override" if self._ppm_override > 0 else "auto",
+            "ppm_source":       "override" if self._ppm_override > 0 else ("simpledraw_est" if is_simpledraw else "auto"),
             "h_walls":          len(h_walls),
             "v_walls":          len(v_walls),
             "total_walls":      len(all_walls),
@@ -1351,12 +1233,10 @@ class RasterParser:
             "windows_detected": len(win_segs),
             "rooms_detected":   len(rooms_px),
         }
-        # Attach raw data for downstream pipeline use
         result._raster_openings = img_openings
         result._rooms_px        = rooms_px
         result._ppm             = ppm
         result._fp_h            = FH
-        result._wall_mask       = wall_mask   # for per-wall thickness measurement
 
         return result
 
@@ -1368,12 +1248,16 @@ class RasterParser:
         fp, _   = _autocrop(img)
         FH, FW  = fp.shape[:2]
         fp_gray = cv2.cvtColor(fp, cv2.COLOR_BGR2GRAY) if fp.ndim == 3 else fp
-        ppm     = self._ppm_override if self._ppm_override > 0 else _detect_ppm(fp)
-        wm, rm, border_crop = _segment(fp)
-        hw, vw  = _detect_walls(wm, border_crop)
+        fmt     = _detect_format(fp)
+        ob      = SD_OPENING_BRIGHT if fmt == 'simpledraw' else OPENING_BRIGHT
+        ppm     = (self._ppm_override if self._ppm_override > 0
+                   else _estimate_ppm_simpledraw(fp_gray) if fmt == 'simpledraw'
+                   else _detect_ppm(fp))
+        wm, rm  = _segment(fp, fmt)
+        min_wp  = int(ppm * 1.0) if fmt == 'simpledraw' else None
+        hw, vw  = _detect_walls(wm, min_wall_px=min_wp)
         hw, vw  = _complete_outer_walls(hw, vw, FH, FW)
-        hw, vw  = _filter_edge_stubs(hw, vw, FH, FW, ppm, border_crop)
-        ops     = _detect_openings_from_image(fp_gray, hw, vw, ppm, border_crop)
+        ops     = _detect_openings_from_image(fp_gray, hw, vw, ppm, opening_bright=ob)
         rooms   = _detect_rooms(rm, wm)
         vis     = _debug_vis(fp, hw, vw, rooms, ops)
         cv2.imwrite(output_path, vis)

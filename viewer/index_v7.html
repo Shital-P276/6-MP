@@ -672,51 +672,68 @@
     }
 
     /* Hotspot: rendered as CSS overlay on top of canvas (no WebGL sprite) */
+    /* ── Hotspot: orange disc + white inner circle ── */
     .hotspot {
       position: absolute;
-      width: 38px; height: 38px;
+      width: 46px; height: 46px;
       transform: translate(-50%, -50%);
-      pointer-events: all;
       cursor: pointer;
       z-index: 15;
+      /* The entire element is the clickable hit target */
+      pointer-events: all;
+      border-radius: 50%;
     }
-    .hotspot-ring {
+    /* Orange outer disc — fills the whole 46×46 hit area */
+    .hotspot-disc {
       position: absolute;
       inset: 0;
       border-radius: 50%;
-      border: 2px solid rgba(167,139,250,.7);
-      animation: hotspot-pulse 2.2s ease-in-out infinite;
+      background: #ff6b35;
+      box-shadow: 0 0 0 2px rgba(255,107,53,.35), 0 3px 14px rgba(255,107,53,.55);
+      transition: transform .18s ease, box-shadow .18s ease;
     }
-    .hotspot-dot {
+    /* White inner circle — decorative only, pointer-events:none */
+    .hotspot-inner {
       position: absolute;
       top: 50%; left: 50%;
-      width: 12px; height: 12px;
-      transform: translate(-50%,-50%);
+      width: 20px; height: 20px;
+      transform: translate(-50%, -50%);
       border-radius: 50%;
-      background: #a78bfa;
-      box-shadow: 0 0 10px rgba(167,139,250,.8);
-      transition: transform .15s;
+      background: #ffffff;
+      pointer-events: none;
+      box-shadow: 0 1px 5px rgba(0,0,0,.30);
+      transition: transform .18s ease;
     }
-    .hotspot:hover .hotspot-dot { transform: translate(-50%,-50%) scale(1.4); }
-    .hotspot.active-hs .hotspot-ring { border-color: #e9d5ff; }
-    .hotspot.active-hs .hotspot-dot  { background: #fff; box-shadow: 0 0 14px rgba(255,255,255,.9); }
+    /* Animated pulse ring outside the disc */
+    .hotspot-pulse {
+      position: absolute;
+      inset: -5px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,107,53,.55);
+      animation: hs-pulse 2.4s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .hotspot:hover .hotspot-disc  { transform: scale(1.15); box-shadow: 0 0 0 3px rgba(255,107,53,.5), 0 5px 20px rgba(255,107,53,.7); }
+    .hotspot:hover .hotspot-inner { transform: translate(-50%,-50%) scale(1.1); }
+    .hotspot.active-hs .hotspot-disc  { background: #ff8c42; box-shadow: 0 0 0 3px rgba(255,140,66,.6), 0 0 22px rgba(255,140,66,.65); }
+    .hotspot.active-hs .hotspot-pulse { border-color: rgba(255,140,66,.8); animation-duration: 1.4s; }
 
-    @keyframes hotspot-pulse {
-      0%,100% { transform: scale(1);   opacity: .7; }
-      50%      { transform: scale(1.5); opacity: .2; }
+    @keyframes hs-pulse {
+      0%,100% { transform: scale(1);   opacity: .6; }
+      50%      { transform: scale(1.7); opacity: .0; }
     }
     .hotspot-tooltip {
       position: absolute;
-      bottom: calc(100% + 6px);
+      bottom: calc(100% + 8px);
       left: 50%;
       transform: translateX(-50%);
       background: rgba(10,12,15,.95);
-      border: 1px solid #a78bfa;
+      border: 1px solid rgba(255,107,53,.55);
       border-radius: 4px;
-      padding: 4px 10px;
+      padding: 4px 11px;
       font-family: var(--mono);
       font-size: 9px;
-      color: #e9d5ff;
+      color: #ffd0b8;
       white-space: nowrap;
       letter-spacing: .08em;
       pointer-events: none;
@@ -1049,7 +1066,7 @@ function log(msg, type = 'info') {
 // ─────────────────────────────────────────────────────────────────────────────
 let scene, camera, renderer, controls;
 let _ambientLight, _dirLight, _fillLight;  // stored for mode-switching
-let wallMeshes = [], wireMeshes = [], floorMesh, ceilingMesh;
+let wallMeshes = [], wireMeshes = [], floorMeshes = [], ceilingMesh;
 let labelSprites = [];
 let showLabels = true;
 let doorMeshes = [], windowMeshes = [];
@@ -1545,11 +1562,11 @@ function applyBlueprintMode() {
   // Restore window sill/header to blueprint blue
   _refreshWindowPieces();
 
-  // Floor — restore dark blueprint floor
-  if (floorMesh && _floorBlueprintMat) {
-    floorMesh.material = _floorBlueprintMat;
-    floorMesh.material.needsUpdate = true;
-  }
+  // Floor — restore dark blueprint floor on all room floor planes
+  floorMeshes.forEach(fm => {
+    fm.material = _floorBlueprintMat.clone();
+    fm.material.needsUpdate = true;
+  });
 }
 
 function applyRealisticMode() {
@@ -1639,27 +1656,30 @@ function _applyOverrideToMesh(mesh, over) {
 }
 
 function applyFloorTexture() {
-  if (!floorMesh) return;
+  if (!floorMeshes.length) return;
   const texObj = _pendingFloorTex
     ? _floorTexObjs.find(t => t.id === _pendingFloorTex.id)
-    : _floorTexObjs[0];   // default to tile
+    : _floorTexObjs[0];
   if (!texObj) return;
 
-  const bounds = floorMesh.geometry.parameters;
   const tileSize = 1.5;
-  const cloned = texObj.tex.clone();
-  cloned.wrapS = cloned.wrapT = THREE.RepeatWrapping;
-  cloned.repeat.set(bounds.width / tileSize, bounds.height / tileSize);
-  cloned.needsUpdate = true;
-
-  floorMesh.material = new THREE.MeshPhongMaterial({
-    map:       cloned,
-    emissive:  new THREE.Color(0, 0, 0),
-    specular:  new THREE.Color(0.06, 0.06, 0.06),
-    shininess: 18,
-    side:      THREE.DoubleSide,
+  floorMeshes.forEach(fm => {
+    const cloned = texObj.tex.clone();
+    cloned.wrapS = cloned.wrapT = THREE.RepeatWrapping;
+    // Use the room's own dimensions stored in userData for correct tiling
+    const fw = fm.userData.roomWidth  || 3;
+    const fd = fm.userData.roomDepth  || 3;
+    cloned.repeat.set(fw / tileSize, fd / tileSize);
+    cloned.needsUpdate = true;
+    fm.material = new THREE.MeshPhongMaterial({
+      map:       cloned,
+      emissive:  new THREE.Color(0, 0, 0),
+      specular:  new THREE.Color(0.06, 0.06, 0.06),
+      shininess: 18,
+      side:      THREE.DoubleSide,
+    });
+    fm.material.needsUpdate = true;
   });
-  floorMesh.material.needsUpdate = true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1742,12 +1762,19 @@ function handleWallClick(event) {
 // Glass panels always stay transparent blue regardless of mode.
 // ─────────────────────────────────────────────────────────────────────────────
 function _makeWallPieceMat(parentMesh) {
-  // Blueprint mode — use blueprint blue
+  // Blueprint mode — match the parent wall's blueprint color exactly
   if (_viewMode === 'blueprint') {
-    return new THREE.MeshPhongMaterial({
-      color: 0x1a2535, emissive: 0x050d1a,
-      specular: 0x00e5ff, shininess: 30,
-    });
+    const isOuter = parentMesh && parentMesh.userData && parentMesh.userData.is_outer;
+    return new THREE.MeshPhongMaterial(
+      isOuter ? {
+        color: 0x0d2233, emissive: new THREE.Color(0.02, 0.08, 0.14),
+        specular: 0x00e5ff, shininess: 45,
+      } : {
+        color: 0x1a3d55, emissive: new THREE.Color(0.01, 0.04, 0.07),
+        specular: 0x44aacc, shininess: 20,
+        transparent: true, opacity: 0.85,
+      }
+    );
   }
   // Realistic mode — match parent wall's override or default (plaster)
   if (parentMesh) {
@@ -1853,7 +1880,7 @@ function resetMaterials() {
 function buildModel(data) {
   // Clear existing
   [...wallMeshes, ...wireMeshes].forEach(m => scene.remove(m));
-  if (floorMesh) scene.remove(floorMesh);
+  if (floorMeshes.length) { floorMeshes.forEach(m => scene.remove(m)); floorMeshes = []; }
   wallMeshes = []; wireMeshes = [];
   _selectedWalls.clear();
 
@@ -1876,7 +1903,9 @@ function buildModel(data) {
   model.walls.forEach(w => {
     const geo   = new THREE.BoxGeometry(w.dimensions.width, w.dimensions.height, w.dimensions.depth);
     const thick = w.dimensions.depth || 0.2;
-    const isOuter = thick >= outerThreshold;
+    // When all walls have same thickness (raster), use paired flag; otherwise use thickness
+    const hasPairedField = typeof w.paired === 'boolean';
+    const isOuter = hasPairedField ? !w.paired : (thick >= outerThreshold);
 
     // Blueprint material
     const bpMat = new THREE.MeshPhongMaterial(
@@ -1914,20 +1943,34 @@ function buildModel(data) {
     wireMeshes.push(wire);
   });
 
-  // Build floor — inset by half the median wall thickness so it sits flush
-  // inside the outer walls rather than poking through them.
-  if (model.floors && model.floors.length > 0) {
-    const f = model.floors[0];
-    const inset = medianThick * 0.5;   // shrink each edge inward by half wall thickness
-    const fw = Math.max(0.1, f.dimensions.width - inset * 2);
-    const fd = Math.max(0.1, f.dimensions.depth - inset * 2);
+  // ── Build floor ───────────────────────────────────────────────────────────
+  // Use the metadata bounds (already in Three.js world space) to build one
+  // correctly-positioned, correctly-sized plane that exactly covers the
+  // building interior. Inset by half the median wall thickness so the floor
+  // edge sits at the inner wall face, not poking through.
+  (function buildFloor() {
+    const b = model.metadata && model.metadata.bounds;
+    if (!b) return;
+
+    // Bounds are in DXF space: x is x, y is DXF-y.
+    // Three.js world: X = DXF-x, Z = -DXF-y  → centre Z = -(miny+maxy)/2
+    const inset = medianThick * 0.5;
+    const fw = Math.max(0.1, (b.maxx - b.minx) - inset * 2);
+    const fd = Math.max(0.1, (b.maxy - b.miny) - inset * 2);
+    const cx = (b.minx + b.maxx) / 2;
+    const cz = -((b.miny + b.maxy) / 2);
+
     const fgeo = new THREE.PlaneGeometry(fw, fd);
-    floorMesh = new THREE.Mesh(fgeo, _floorBlueprintMat);
-    floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.position.set(f.position.x, 0.001, f.position.z);
-    floorMesh.receiveShadow = true;
-    scene.add(floorMesh);
-  }
+    const fm   = new THREE.Mesh(fgeo, _floorBlueprintMat.clone());
+    fm.rotation.x    = -Math.PI / 2;
+    fm.position.set(cx, 0.001, cz);
+    fm.receiveShadow = true;
+    fm.userData.isFloor   = true;
+    fm.userData.roomWidth = fw;
+    fm.userData.roomDepth = fd;
+    scene.add(fm);
+    floorMeshes.push(fm);
+  })();
 
   // Build doors
   doorMeshes.forEach(m => scene.remove(m));
@@ -1983,15 +2026,21 @@ function buildModel(data) {
     model.windows.forEach(w => {
       if (!w.pieces) return;
 
-      // Find the nearest wall mesh by XZ position (backend doesn't send wall_idx on windows)
+      // Find the wall mesh that best matches this window:
+      // prefer walls with the same rotation_y (same orientation) and closest position.
       const wx = w.position.x, wz = w.position.z;
-      let parentMesh = null, bestDist = Infinity;
+      const wry = w.rotation_y || 0;
+      let parentMesh = null, bestScore = Infinity;
       wallMeshes.forEach(m => {
-        const d = Math.hypot(m.position.x - wx, m.position.z - wz);
-        if (d < bestDist) { bestDist = d; parentMesh = m; }
+        const dx = m.position.x - wx, dz = m.position.z - wz;
+        const dist = Math.hypot(dx, dz);
+        // Penalize mismatched rotation: add 2m equivalent per 45° off
+        const ryDiff = Math.abs(((m.rotation.y - wry) % Math.PI + Math.PI) % Math.PI);
+        const rotPenalty = (ryDiff < 0.15) ? 0 : 3.0;
+        const score = dist + rotPenalty;
+        if (score < bestScore) { bestScore = score; parentMesh = m; }
       });
-      // Accept nearest wall up to 4m — windows sit on the wall face so XZ center can be offset
-      if (bestDist > 4.0) parentMesh = null;
+      if (bestScore > 5.0) parentMesh = null;
 
       w.pieces.forEach(p => {
         const isGlass = p.kind === 'glass';
@@ -2168,7 +2217,7 @@ function setView(view) {
 function applyVisibility() {
   wallMeshes.forEach(m => m.visible = showSolid);
   wireMeshes.forEach(m => m.visible = showWire);
-  if (floorMesh) floorMesh.visible = showFloor;
+  floorMeshes.forEach(fm => { fm.visible = showFloor; });
   labelSprites.forEach(s => s.visible = showLabels);
   doorMeshes.forEach(m => m.visible = showDoors);
   windowMeshes.forEach(m => m.visible = showWindows);
@@ -2558,8 +2607,10 @@ function _buildTourRooms(modelRooms, modelBounds) {
       label: r.label,
       area:  r.area,
       color: r.color || '#a78bfa',
-      wx: r.position.x,
-      wy: r.position.z,
+      // True room centroid — used for hotspot screen projection (always centre of room)
+      cx: r.position.x,
+      cz: r.position.z,
+      // Camera eye position — nudged clear of walls for FP viewpoint
       eyeX, eyeY: FP_HEIGHT, eyeZ,
     });
   });
@@ -2577,8 +2628,9 @@ function _buildHotspots() {
     el.className   = 'hotspot';
     el.dataset.idx = i;
     el.innerHTML   = `
-      <div class="hotspot-ring"></div>
-      <div class="hotspot-dot"></div>
+      <div class="hotspot-disc"></div>
+      <div class="hotspot-inner"></div>
+      <div class="hotspot-pulse"></div>
       <div class="hotspot-tooltip">${room.label}</div>
     `;
     el.addEventListener('click', (e) => {
@@ -2817,8 +2869,10 @@ function _updateHotspotPositions() {
     const el = _hotspotEls[i];
     if (!el) return;
 
-    // Floor point: y=0 (on the floor)
-    const pt = new THREE.Vector3(room.eyeX, 0.02, room.eyeZ);
+    // Always project from the true room centroid so the hotspot
+    // stays pinned to the centre of the room regardless of where
+    // the camera viewpoint has been nudged to avoid walls.
+    const pt = new THREE.Vector3(room.cx, 0.02, room.cz);
     pt.project(camera);   // NDC
 
     const sx = (pt.x * 0.5 + 0.5) * W;
@@ -2850,8 +2904,8 @@ function drawMinimap() {
   if (_tourRooms.length === 0) return;
 
   // Compute bounding box of all room centroids
-  const xs = _tourRooms.map(r => r.eyeX);
-  const zs = _tourRooms.map(r => r.eyeZ);
+  const xs = _tourRooms.map(r => r.cx);
+  const zs = _tourRooms.map(r => r.cz);
   const minX = Math.min(...xs), maxX = Math.max(...xs);
   const minZ = Math.min(...zs), maxZ = Math.max(...zs);
   const spanX = (maxX - minX) || 1, spanZ = (maxZ - minZ) || 1;
@@ -2879,7 +2933,7 @@ function drawMinimap() {
 
   // Draw room dots
   _tourRooms.forEach((room, i) => {
-    const p = toCanvas(room.eyeX, room.eyeZ);
+    const p = toCanvas(room.cx, room.cz);
     const isCurrent = (i === _tourIndex);
 
     // Outer ring
@@ -2906,7 +2960,7 @@ function drawMinimap() {
   // Draw camera direction indicator on current room
   if (_tourRooms[_tourIndex]) {
     const room = _tourRooms[_tourIndex];
-    const p    = toCanvas(room.eyeX, room.eyeZ);
+    const p    = toCanvas(room.cx, room.cz);
     const dir  = new THREE.Vector3();
     camera.getWorldDirection(dir);
     const angle = Math.atan2(dir.x, dir.z);
