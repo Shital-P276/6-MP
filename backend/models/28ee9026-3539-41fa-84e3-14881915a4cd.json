@@ -1,0 +1,204 @@
+{
+  "success": true,
+  "processing_time_ms": 28.5,
+  "warnings": [
+    "raster_v6: 6 walls, 0 doors, 1 windows, 0 rooms detected at 65 px/m (auto). Cropped from 362x324px \u2192 362x324px."
+  ],
+  "source_type": "raster",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 5,
+      "floor_count": 1,
+      "room_count": 0,
+      "door_count": 0,
+      "window_count": 1,
+      "total_wall_length": 14.52,
+      "paired_walls": 1,
+      "bounds": {
+        "minx": 0.7230769230769231,
+        "miny": 0.7384615384615385,
+        "maxx": 4.753846153846154,
+        "maxy": 4.430769230769231
+      },
+      "format": "floorplan-json-v1"
+    },
+    "walls": [
+      {
+        "type": "box",
+        "position": {
+          "x": 1.647,
+          "y": 1.5,
+          "z": -0.8769
+        },
+        "dimensions": {
+          "width": 1.1094,
+          "height": 3.0,
+          "depth": 0.2462
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": true,
+        "confidence": 0.86,
+        "length": 1.1094,
+        "thickness": 0.2462,
+        "room_id": null
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 2.7385,
+          "y": 1.5,
+          "z": -4.4308
+        },
+        "dimensions": {
+          "width": 4.3385,
+          "height": 3.0,
+          "depth": 0.3077
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": null
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.2385,
+          "y": 1.5,
+          "z": -0.7385
+        },
+        "dimensions": {
+          "width": 1.3385,
+          "height": 3.0,
+          "depth": 0.3077
+        },
+        "rotation_y": -0.0,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": null
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 4.7538,
+          "y": 1.5,
+          "z": -2.7154
+        },
+        "dimensions": {
+          "width": 3.7385,
+          "height": 3.0,
+          "depth": 0.3077
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": null
+      },
+      {
+        "type": "box",
+        "position": {
+          "x": 0.7231,
+          "y": 1.5,
+          "z": -2.5846
+        },
+        "dimensions": {
+          "width": 4.0,
+          "height": 3.0,
+          "depth": 0.3077
+        },
+        "rotation_y": 1.570796,
+        "layer": "WALL",
+        "paired": false,
+        "confidence": 0.8,
+        "room_id": null
+      }
+    ],
+    "floors": [
+      {
+        "type": "floor",
+        "position": {
+          "x": 2.7385,
+          "y": 0.0,
+          "z": -2.5846
+        },
+        "dimensions": {
+          "width": 4.0308,
+          "depth": 3.6923
+        }
+      }
+    ],
+    "rooms": [],
+    "doors": [],
+    "windows": [
+      {
+        "position": {
+          "x": 2.5432,
+          "y": 1.5,
+          "z": -0.8769
+        },
+        "width": 0.6829,
+        "height": 3.0,
+        "depth": 0.2462,
+        "rotation_y": -0.0,
+        "sill_h": 0.9,
+        "win_h": 1.2,
+        "pieces": [
+          {
+            "kind": "sill",
+            "position": {
+              "x": 2.5432,
+              "y": 0.45,
+              "z": -0.8769
+            },
+            "dimensions": {
+              "width": 0.6829,
+              "height": 0.9,
+              "depth": 0.2462
+            },
+            "rotation_y": -0.0
+          },
+          {
+            "kind": "header",
+            "position": {
+              "x": 2.5432,
+              "y": 2.55,
+              "z": -0.8769
+            },
+            "dimensions": {
+              "width": 0.6829,
+              "height": 0.9,
+              "depth": 0.2462
+            },
+            "rotation_y": -0.0
+          },
+          {
+            "kind": "glass",
+            "position": {
+              "x": 2.5432,
+              "y": 1.5,
+              "z": -0.8769
+            },
+            "dimensions": {
+              "width": 0.6829,
+              "height": 1.2,
+              "depth": 0.0369
+            },
+            "rotation_y": -0.0
+          }
+        ]
+      }
+    ]
+  },
+  "stats": {
+    "wall_segments": 6,
+    "walls_detected": 5,
+    "paired_walls": 1,
+    "rooms_detected": 0,
+    "doors_detected": 0,
+    "windows_detected": 1
+  }
+}

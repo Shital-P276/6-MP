@@ -1,0 +1,37 @@
+{
+  "success": true,
+  "processing_time_ms": 86.4,
+  "warnings": [
+    "raster_v6: 0 walls, 0 doors, 0 windows, 0 rooms detected at 65 px/m (auto). Cropped from 1152x648px \u2192 1152x648px.",
+    "No geometry detected in file.",
+    "Wall detection produced no results."
+  ],
+  "source_type": "raster",
+  "applied_scale": 1.0,
+  "model": {
+    "metadata": {
+      "wall_count": 0,
+      "floor_count": 0,
+      "room_count": 0,
+      "door_count": 0,
+      "window_count": 0,
+      "total_wall_length": 0,
+      "paired_walls": 0,
+      "bounds": null,
+      "format": "floorplan-json-v1"
+    },
+    "walls": [],
+    "floors": [],
+    "rooms": [],
+    "doors": [],
+    "windows": []
+  },
+  "stats": {
+    "wall_segments": 0,
+    "walls_detected": 0,
+    "paired_walls": 0,
+    "rooms_detected": 0,
+    "doors_detected": 0,
+    "windows_detected": 0
+  }
+}

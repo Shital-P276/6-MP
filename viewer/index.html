@@ -2491,7 +2491,6 @@ function _applyTourLook() {
     _tourLookPitch -= dy * SENSITIVITY;   // invert Y: drag down = look down
     _tourLookPitch  = Math.max(-0.65, Math.min(0.65, _tourLookPitch));
     _applyTourLook();
-    drawMinimap();   // keep direction arrow in sync
   });
   document.addEventListener('mouseup', () => { _dragging = false; });
 })();
@@ -2525,9 +2524,6 @@ function activateTour() {
   _buildProgressPips();
   _createTourCeiling();
   if (_viewMode !== 'realistic') setMode('realistic');
-  // Widen FOV for immersive first-person feel
-  camera.fov = 72;
-  camera.updateProjectionMatrix();
   _flyToRoom(_tourIndex);
   log('Tour started', 'info');
 }
@@ -2548,8 +2544,8 @@ function deactivateTour() {
   _removeHotspots();
   _removeTourCeiling();
 
-  // Restore camera FOV to default
-  camera.fov = 45;
+  // Restore camera FOV
+  camera.fov = 60;
   camera.updateProjectionMatrix();
 
   // Restore top-down orbit view
@@ -2772,13 +2768,18 @@ function _flyToRoom(idx) {
   // Update hotspot highlight
   _hotspotEls.forEach((el, i) => el.classList.toggle('active-hs', i === idx));
 
+  // Update prev/next buttons
+  document.getElementById('tour-prev').disabled = idx === 0;
+  document.getElementById('tour-next').disabled = idx === _tourRooms.length - 1;
+
   _updatePips();
   drawMinimap();
 }
 
 // ── Nav buttons ──
 function tourNav(dir) {
-  const next = (_tourIndex + dir + _tourRooms.length) % _tourRooms.length;
+  const next = _tourIndex + dir;
+  if (next < 0 || next >= _tourRooms.length) return;
   _flyToRoom(next);
 }
 
@@ -2837,7 +2838,7 @@ function tickTourCamera() {
 
   // Subtle FOV dip at midpoint for cinematic feel (±5° bell curve)
   const fovDip = Math.sin(t * Math.PI) * 5;
-  camera.fov = 72 - fovDip;
+  camera.fov = 60 - fovDip;
   camera.updateProjectionMatrix();
 
   camera.position.copy(pos);
@@ -2845,7 +2846,7 @@ function tickTourCamera() {
 
   // On landing: restore FOV, sync orbit controls
   if (!_tourFlying) {
-    camera.fov = 72;
+    camera.fov = 60;
     camera.updateProjectionMatrix();
     if (window._orbit) {
       window._orbit.target.copy(tgt);
@@ -2859,12 +2860,6 @@ function tickTourCamera() {
 // ── Project 3D floor point → 2D canvas position for hotspot placement ──
 function _updateHotspotPositions() {
   if (!_tourActive || _hotspotEls.length === 0) return;
-
-  // Hide all hotspots during camera fly — they jump around and distract
-  if (_tourFlying) {
-    _hotspotEls.forEach(el => { el.style.display = 'none'; });
-    return;
-  }
 
   const container = document.getElementById('canvas-container');
   const W = container.clientWidth;
@@ -2923,23 +2918,15 @@ function drawMinimap() {
     };
   }
 
-  // Draw floor plan footprint — proper wall line segments using center + half-length + rotation
-  if (window._tourWallData && window._tourWallData.length > 0) {
-    ctx.strokeStyle = 'rgba(80,110,180,0.6)';
-    ctx.lineWidth   = 1.5;
-    ctx.lineCap     = 'round';
+  // Draw floor plan footprint from wall boxes (thin lines)
+  if (window._tourWallData) {
+    ctx.strokeStyle = 'rgba(60,80,120,0.5)';
+    ctx.lineWidth   = 1;
     window._tourWallData.forEach(w => {
-      // halfW = half the wall's length (along its axis); ry = rotation in Three.js (-atan2)
-      const halfL = w.halfW;
-      const cos = Math.cos(w.ry), sin = Math.sin(w.ry);
-      // Wall axis direction in world XZ: (cos(ry), -sin(ry)) — inverse of Three.js rot_y convention
-      const x0 = w.cx - halfL * cos,  z0 = w.cz + halfL * sin;
-      const x1 = w.cx + halfL * cos,  z1 = w.cz - halfL * sin;
-      const p0 = toCanvas(x0, z0);
-      const p1 = toCanvas(x1, z1);
+      // Each wall has world center and rotation — draw as line
+      const p = toCanvas(w.cx, w.cz);
       ctx.beginPath();
-      ctx.moveTo(p0.x, p0.y);
-      ctx.lineTo(p1.x, p1.y);
+      ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
       ctx.stroke();
     });
   }
