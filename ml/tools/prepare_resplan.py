@@ -71,7 +71,8 @@ def try_render_from_vector(annotation, h: int, w: int) -> np.ndarray:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-root", required=True)
-    parser.add_argument("--hf-token",    default=None)
+    parser.add_argument("--hf-token",      default=None)
+    parser.add_argument("--hf-token-file", default=None, help="Read token from file instead of arg")
     parser.add_argument("--max-samples", type=int, default=17000)
     parser.add_argument("--dataset-name", default=None,
                         help="HuggingFace dataset name. Auto-detected if not provided.")
@@ -83,6 +84,11 @@ def main():
     out_splits = out_root / "splits"
     for d in [out_images, out_masks, out_splits]:
         d.mkdir(parents=True, exist_ok=True)
+
+    # Read token from file if provided (avoids token in shell history)
+    if args.hf_token_file and os.path.exists(args.hf_token_file):
+        with open(args.hf_token_file) as tf:
+            args.hf_token = tf.read().strip()
 
     from datasets import load_dataset
 

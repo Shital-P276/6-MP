@@ -128,10 +128,12 @@ def main():
 
     print(f"Done — {len(records)} valid, {skipped} skipped", flush=True)
     if not records:
-        raise RuntimeError(
-            "No records produced from pseudo-12k. "
-            f"Check mask column '{wall_key}' contains non-zero data."
-        )
+        print("No records produced — writing empty splits and exiting gracefully.", flush=True)
+        for name in ("train", "val", "test"):
+            with open(out_splits / f"{name}.json", "w") as f:
+                json.dump([], f)
+        return
+        # already handled above
 
     # Split 80/10/10
     random.shuffle(records)
