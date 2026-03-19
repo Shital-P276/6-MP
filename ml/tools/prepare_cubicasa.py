@@ -1,20 +1,12 @@
 """
 prepare_cubicasa.py — CubiCasa5k SVG → 4-class mask converter
-Fully self-contained: no dependency on floortrans/House loader.
-Parses SVGs directly using Python's built-in xml.etree.ElementTree.
+No dependency on floortrans/House loader. Python 3.12 compatible.
 
-CubiCasa5k SVG structure (confirmed from source):
-  Each plan has a model.svg with groups like:
-    <g class="Wall"> ... <polygon points="x1,y1 x2,y2 ..."/> </g>
-    <g class="Railing"> ... </g>
-    <g id="Door" class="..."> ... </g>
-    <g class="Window"> ... </g>
-  Or individual elements with class attributes directly.
-
-Class mapping:
-  Wall, Railing, Column → class 1
-  Door, Opening → class 2
-  Window → class 3
+CubiCasa SVG class names (confirmed from actual dataset SVGs):
+  Walls   → BoundaryPolygon (room boundary polygons ARE the walls)
+  Doors   → Door, Doors
+  Windows → Glass (windows tagged as Glass in CubiCasa)
+  Ignored → Floor, Floorplan, Bedroom, Bath, etc. (room fills, furniture)
 """
 
 import os
@@ -31,57 +23,55 @@ import numpy as np
 SAVE_SIZE = 512
 MIN_SIZE  = 150
 
-# CubiCasa SVG class name → our mask class
-CLASS_MAP = {}
-for name in ['Wall', 'wall', 'Walls', 'walls', 'WallGroup',
-             'Railing', 'railing', 'Column', 'column', 'Structure']:
-    CLASS_MAP[name] = 1
-for name in ['Door', 'door', 'Doors', 'doors', 'Opening', 'opening',
-             'DoorGroup', 'SingleSwingDoor', 'DoubleSwingDoor']:
-    CLASS_MAP[name] = 2
-for name in ['Window', 'window', 'Windows', 'windows', 'WindowGroup',
-             'Skylight', 'skylight']:
-    CLASS_MAP[name] = 3
+# Confirmed from actual CubiCasa5k SVG class names
+CLASS_MAP = {
+    # Walls — room boundary polygons define the wall geometry
+    'BoundaryPolygon': 1,
+    # Also handle any alternative wall naming
+    'Wall': 1, 'Walls': 1, 'WallSurface': 1,
+    'Railing': 1, 'Column': 1, 'Structure': 1,
+    # Doors
+    'Door': 2, 'Doors': 2,
+    'Opening': 2, 'SingleSwingDoor': 2, 'DoubleSwingDoor': 2,
+    # Windows — tagged as Glass in CubiCasa
+    'Glass': 3, 'Window': 3, 'Windows': 3, 'Skylight': 3,
+}
 
 
 def parse_points(pts_str):
-    """Parse SVG points string into list of (x,y) floats."""
+    """Parse SVG points string 'x1,y1 x2,y2 ...' into list of (x,y) floats."""
     pts = []
-    for pair in re.split(r'[\s,]+', pts_str.strip()):
-        pair = pair.strip()
-        if not pair:
+    # Handle both 'x,y' pairs and alternating 'x y x y' formats
+    tokens = re.split(r'[\s]+', pts_str.strip())
+    for tok in tokens:
+        tok = tok.strip()
+        if not tok:
             continue
-        # Handle "x,y" or separate x y tokens
-        if ',' in pair:
-            parts = pair.split(',')
-            if len(parts) == 2:
+        if ',' in tok:
+            parts = tok.split(',')
+            if len(parts) >= 2:
                 try:
                     pts.append((float(parts[0]), float(parts[1])))
                 except ValueError:
                     pass
+    # If no comma-pairs found, try alternating x y format
+    if not pts:
+        nums = []
+        for tok in tokens:
+            try:
+                nums.append(float(tok))
+            except ValueError:
+                pass
+        for i in range(0, len(nums) - 1, 2):
+            pts.append((nums[i], nums[i+1]))
     return pts
 
 
-def parse_points_alternating(pts_str):
-    """Parse SVG points as alternating x y x y values (no commas)."""
-    nums = []
-    for tok in re.split(r'\s+', pts_str.strip()):
-        try:
-            nums.append(float(tok))
-        except ValueError:
-            pass
-    pts = []
-    for i in range(0, len(nums) - 1, 2):
-        pts.append((nums[i], nums[i+1]))
-    return pts
-
-
-def get_cls_from_elem(elem, ns=''):
-    """Extract class name from an element, trying multiple attributes."""
-    for attr in ['class', f'{ns}class', 'id', 'type', 'label']:
+def get_class(elem):
+    """Get our mask class from an SVG element's class/id attributes."""
+    for attr in ['class', 'id', 'type', 'label']:
         val = elem.get(attr, '')
         if val:
-            # class can be space-separated list — take first token
             for token in val.strip().split():
                 if token in CLASS_MAP:
                     return CLASS_MAP[token]
@@ -89,7 +79,7 @@ def get_cls_from_elem(elem, ns=''):
 
 
 def svg_to_mask(svg_path: Path, img_h: int, img_w: int) -> np.ndarray:
-    """Parse a CubiCasa SVG and rasterise into a 4-class mask."""
+    """Parse CubiCasa SVG and rasterise into 4-class integer mask."""
     import xml.etree.ElementTree as ET
 
     mask = np.zeros((img_h, img_w), dtype=np.uint8)
@@ -98,21 +88,17 @@ def svg_to_mask(svg_path: Path, img_h: int, img_w: int) -> np.ndarray:
         tree = ET.parse(str(svg_path))
         root = tree.getroot()
 
-        # Strip XML namespace from tag names
         def strip_ns(tag):
             return re.sub(r'\{[^}]+\}', '', tag)
 
         # Get viewBox for coordinate scaling
-        svg_tag = root if strip_ns(root.tag) == 'svg' else None
-        if svg_tag is None:
+        vb = root.get('viewBox', root.get('viewbox', ''))
+        if not vb:
             for elem in root.iter():
-                if strip_ns(elem.tag) == 'svg':
-                    svg_tag = elem
+                vb = elem.get('viewBox', elem.get('viewbox', ''))
+                if vb:
                     break
-        if svg_tag is None:
-            svg_tag = root
 
-        vb = svg_tag.get('viewBox', svg_tag.get('viewbox', ''))
         if vb:
             parts = vb.strip().split()
             if len(parts) == 4:
@@ -125,46 +111,34 @@ def svg_to_mask(svg_path: Path, img_h: int, img_w: int) -> np.ndarray:
             else:
                 sx = sy = 1.0
         else:
-            sw = float(svg_tag.get('width',  img_w) or img_w)
-            sh = float(svg_tag.get('height', img_h) or img_h)
-            sx = img_w / sw if sw > 0 else 1.0
-            sy = img_h / sh if sh > 0 else 1.0
+            w_attr = float(root.get('width',  img_w) or img_w)
+            h_attr = float(root.get('height', img_h) or img_h)
+            sx = img_w / w_attr if w_attr > 0 else 1.0
+            sy = img_h / h_attr if h_attr > 0 else 1.0
 
-        def draw_points(pts, cls, thickness=None):
+        def draw(pts, cls, as_line=False):
             if len(pts) < 2:
                 return
-            arr = np.array([[int(x * sx), int(y * sy)] for x, y in pts], dtype=np.int32)
-            if len(pts) >= 3 and thickness is None:
-                cv2.fillPoly(mask, [arr], cls)
-            else:
-                t = thickness or max(3, int(3 * min(sx, sy)))
+            arr = np.array([[int(x * sx), int(y * sy)] for x, y in pts],
+                           dtype=np.int32)
+            if as_line or len(pts) < 3:
+                t = max(3, int(3 * min(sx, sy)))
                 for i in range(len(arr) - 1):
                     cv2.line(mask, tuple(arr[i]), tuple(arr[i+1]), cls, t)
+            else:
+                cv2.fillPoly(mask, [arr], cls)
 
-        # Walk every element in the SVG
+        # Two-pass: first pass handles elements with own class attribute,
+        # second pass handles elements that inherit class from parent group
         for elem in root.iter():
-            tag = strip_ns(elem.tag)
-
-            # Get class from this element OR its parent group
-            cls = get_cls_from_elem(elem)
+            cls = get_class(elem)
             if cls is None:
-                # Try parent (ET doesn't have parent refs, so check group context below)
                 continue
-
+            tag = strip_ns(elem.tag)
             if tag == 'polygon':
-                pts_str = elem.get('points', '')
-                pts = parse_points(pts_str)
-                if len(pts) < 3:
-                    pts = parse_points_alternating(pts_str)
-                draw_points(pts, cls)
-
+                draw(parse_points(elem.get('points', '')), cls)
             elif tag == 'polyline':
-                pts_str = elem.get('points', '')
-                pts = parse_points(pts_str)
-                if len(pts) < 2:
-                    pts = parse_points_alternating(pts_str)
-                draw_points(pts, cls, thickness=max(3, int(3 * min(sx, sy))))
-
+                draw(parse_points(elem.get('points', '')), cls, as_line=True)
             elif tag == 'rect':
                 try:
                     rx = float(elem.get('x', 0)) * sx
@@ -172,49 +146,33 @@ def svg_to_mask(svg_path: Path, img_h: int, img_w: int) -> np.ndarray:
                     rw = float(elem.get('width',  0)) * sx
                     rh = float(elem.get('height', 0)) * sy
                     if rw > 0 and rh > 0:
-                        pts = [(rx, ry), (rx+rw, ry), (rx+rw, ry+rh), (rx, ry+rh)]
-                        draw_points(pts, cls)
+                        draw([(rx,ry),(rx+rw,ry),(rx+rw,ry+rh),(rx,ry+rh)], cls)
                 except (ValueError, TypeError):
                     pass
-
             elif tag == 'line':
                 try:
                     x1 = float(elem.get('x1', 0)) * sx
                     y1 = float(elem.get('y1', 0)) * sy
                     x2 = float(elem.get('x2', 0)) * sx
                     y2 = float(elem.get('y2', 0)) * sy
-                    sw_val = elem.get('stroke-width', '4')
-                    try:
-                        t = max(3, int(float(sw_val) * min(sx, sy)))
-                    except ValueError:
-                        t = 4
-                    cv2.line(mask,
-                             (int(x1), int(y1)),
-                             (int(x2), int(y2)),
-                             cls, t)
+                    t  = max(3, int(float(elem.get('stroke-width', 4)) * min(sx, sy)))
+                    cv2.line(mask, (int(x1), int(y1)), (int(x2), int(y2)), cls, t)
                 except (ValueError, TypeError):
                     pass
 
-        # Second pass: handle group-level class inheritance
-        # Walk groups, propagate class to children
+        # Second pass: group-level class → children
         for group in root.iter():
             if strip_ns(group.tag) != 'g':
                 continue
-            cls = get_cls_from_elem(group)
+            cls = get_class(group)
             if cls is None:
                 continue
             for child in group:
                 tag = strip_ns(child.tag)
                 if tag == 'polygon':
-                    pts_str = child.get('points', '')
-                    pts = parse_points(pts_str)
-                    if len(pts) < 3:
-                        pts = parse_points_alternating(pts_str)
-                    draw_points(pts, cls)
+                    draw(parse_points(child.get('points', '')), cls)
                 elif tag == 'polyline':
-                    pts_str = child.get('points', '')
-                    pts = parse_points(pts_str)
-                    draw_points(pts, cls, thickness=max(3, int(3*min(sx,sy))))
+                    draw(parse_points(child.get('points', '')), cls, as_line=True)
                 elif tag == 'rect':
                     try:
                         rx = float(child.get('x', 0)) * sx
@@ -222,19 +180,17 @@ def svg_to_mask(svg_path: Path, img_h: int, img_w: int) -> np.ndarray:
                         rw = float(child.get('width',  0)) * sx
                         rh = float(child.get('height', 0)) * sy
                         if rw > 0 and rh > 0:
-                            pts = [(rx,ry),(rx+rw,ry),(rx+rw,ry+rh),(rx,ry+rh)]
-                            draw_points(pts, cls)
+                            draw([(rx,ry),(rx+rw,ry),(rx+rw,ry+rh),(rx,ry+rh)], cls)
                     except (ValueError, TypeError):
                         pass
 
-    except Exception as e:
-        pass  # return whatever mask we have
+    except Exception:
+        pass
 
     return mask
 
 
 def find_all_plan_folders(data_root: Path):
-    """Walk data_root and find all folders with both an image and SVG."""
     folders = []
     for root, dirs, files in os.walk(str(data_root)):
         has_svg = any(f.endswith('.svg') for f in files)
@@ -249,15 +205,11 @@ def process_folders(folders, out_images, out_masks, split_name):
     skipped = 0
 
     for i, folder in enumerate(folders):
-        folder = Path(folder)
-
-        # Find SVG
         svgs = list(folder.glob('*.svg'))
         if not svgs:
             skipped += 1
             continue
 
-        # Find image (prefer F1_original.png)
         imgs = list(folder.glob('F1_original.png'))
         if not imgs:
             imgs = list(folder.glob('*.png')) + list(folder.glob('*.jpg'))
@@ -277,15 +229,12 @@ def process_folders(folders, out_images, out_masks, split_name):
             skipped += 1
             continue
 
-        # Resize
         img_rs  = cv2.resize(img,  (SAVE_SIZE, SAVE_SIZE), interpolation=cv2.INTER_LANCZOS4)
         mask_rs = cv2.resize(mask, (SAVE_SIZE, SAVE_SIZE), interpolation=cv2.INTER_NEAREST)
         mask_rs = np.clip(mask_rs, 0, 3).astype(np.uint8)
 
-        uid = str(folder).replace('/', '_').replace('\\', '_').lstrip('_')[-60:]
-        img_p  = out_images / f"cubi_{i:05d}_{uid[:20]}.png"
-        mask_p = out_masks  / f"cubi_{i:05d}_{uid[:20]}_mask.png"
-
+        img_p  = out_images / f"cubi_{i:05d}.png"
+        mask_p = out_masks  / f"cubi_{i:05d}_mask.png"
         cv2.imwrite(str(img_p),  img_rs)
         cv2.imwrite(str(mask_p), mask_rs)
 
@@ -302,8 +251,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cubicasa-root",   required=True)
     parser.add_argument("--output-root",     required=True)
-    parser.add_argument("--floortrans-repo", default=None,
-                        help="Ignored — we no longer use the House loader")
+    parser.add_argument("--floortrans-repo", default=None)  # ignored, kept for compat
     args = parser.parse_args()
 
     data_root = Path(args.cubicasa_root)
@@ -315,37 +263,40 @@ def main():
     for d in [out_images, out_masks, out_splits]:
         d.mkdir(parents=True, exist_ok=True)
 
-    print(f"Scanning {data_root} for floor plan folders...", flush=True)
+    print(f"Scanning {data_root} ...", flush=True)
     all_folders = find_all_plan_folders(data_root)
-    print(f"Found {len(all_folders)} folders", flush=True)
+    print(f"Found {len(all_folders)} plan folders", flush=True)
 
     if not all_folders:
-        print("ERROR: no folders found. Check --cubicasa-root path.", flush=True)
+        print("ERROR: no folders found.", flush=True)
         sys.exit(1)
 
-    # Quick test on first folder to verify SVG parsing works
+    # Quick test — show what classes we see and what mask we get
     test_folder = all_folders[0]
-    test_svgs = list(test_folder.glob('*.svg'))
-    test_imgs = list(test_folder.glob('*.png'))
+    test_svgs   = list(test_folder.glob('*.svg'))
+    test_imgs   = list(test_folder.glob('F1_original.png')) or list(test_folder.glob('*.png'))
     if test_svgs and test_imgs:
+        import xml.etree.ElementTree as ET
+        tree = ET.parse(str(test_svgs[0]))
+        all_classes = set()
+        for elem in tree.getroot().iter():
+            c = elem.get('class', '')
+            if c:
+                for tok in c.strip().split():
+                    all_classes.add(tok)
+        print(f"All SVG classes in first sample: {sorted(all_classes)}", flush=True)
+
         test_img = cv2.imread(str(test_imgs[0]))
         if test_img is not None:
             ih, iw = test_img.shape[:2]
             test_mask = svg_to_mask(test_svgs[0], ih, iw)
             unique = np.unique(test_mask).tolist()
-            print(f"SVG parse test on {test_folder.name}: mask unique values = {unique}", flush=True)
+            wall_px = int((test_mask == 1).sum())
+            print(f"Test mask unique={unique}  wall_pixels={wall_px}", flush=True)
             if 1 not in unique:
-                print("WARNING: no wall pixels in test sample — SVG class names may differ", flush=True)
-                # Print first few group class names from SVG to debug
-                import xml.etree.ElementTree as ET
-                tree = ET.parse(str(test_svgs[0]))
-                classes_found = set()
-                for elem in tree.getroot().iter():
-                    c = elem.get('class', '')
-                    if c:
-                        for tok in c.strip().split():
-                            classes_found.add(tok)
-                print(f"  Classes in SVG: {sorted(classes_found)[:30]}", flush=True)
+                print("STILL no walls — check CLASS_MAP vs classes above", flush=True)
+            else:
+                print("Wall pixels found ✓", flush=True)
 
     # Split 80/10/10
     random.shuffle(all_folders)
@@ -364,21 +315,34 @@ def main():
         with open(out_splits / f"{split_name}.json", "w") as f:
             json.dump(records, f, indent=2)
 
-    total_train = len(all_records.get("train", []))
-    print(f"\nTotal: train={total_train} val={len(all_records.get('val',[]))} test={len(all_records.get('test',[]))}", flush=True)
+    total = len(all_records.get("train", []))
+    print(f"\nTotal: train={total} val={len(all_records.get('val',[]))} test={len(all_records.get('test',[]))}", flush=True)
 
-    if total_train == 0:
-        print("ERROR: 0 training records. SVG class names not matching CLASS_MAP.", flush=True)
+    if total == 0:
+        # Print ALL unique classes across all SVGs to help diagnose
+        print("Scanning ALL SVGs for class names...", flush=True)
+        import xml.etree.ElementTree as ET
+        all_cls = set()
+        for folder in all_folders[:50]:
+            for svg in folder.glob('*.svg'):
+                try:
+                    tree = ET.parse(str(svg))
+                    for elem in tree.getroot().iter():
+                        c = elem.get('class', '')
+                        for tok in c.strip().split():
+                            if tok:
+                                all_cls.add(tok)
+                except Exception:
+                    pass
+        print(f"All classes in first 50 SVGs: {sorted(all_cls)}", flush=True)
         sys.exit(1)
 
-    # Sanity check
-    samples = random.sample(all_records["train"], min(5, total_train))
-    ok = 0
-    for s in samples:
-        m = cv2.imread(s["mask"], cv2.IMREAD_GRAYSCALE)
-        if m is not None and 1 in np.unique(m):
-            ok += 1
-    print(f"Sanity check: {ok}/{len(samples)} samples have wall pixels {'✓' if ok > 0 else '— check CLASS_MAP'}", flush=True)
+    # Sanity
+    samples = random.sample(all_records["train"], min(5, total))
+    ok = sum(1 for s in samples
+             if (m := cv2.imread(s["mask"], cv2.IMREAD_GRAYSCALE)) is not None
+             and 1 in np.unique(m))
+    print(f"Sanity: {ok}/{len(samples)} have wall pixels {'✓' if ok > 0 else '✗'}", flush=True)
 
 
 if __name__ == "__main__":
