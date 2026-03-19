@@ -1,221 +1,295 @@
 """
-prepare_cubicasa.py
-Converts CubiCasa5k SVGs → 4-class integer PNG masks.
+prepare_cubicasa.py — CubiCasa5k SVG → 4-class mask converter
+Fully self-contained: no dependency on floortrans/House loader.
+Parses SVGs directly using Python's built-in xml.etree.ElementTree.
 
-CubiCasa5k structure after unzip:
-  cubicasa5k/
-    high_quality/          (2500 plans)
-    high_quality_architectural/ (2500 plans)
-    colorful/              (present in some downloads)
-    cubicasa5k.csv         (split info — columns: image, split or just image paths)
+CubiCasa5k SVG structure (confirmed from source):
+  Each plan has a model.svg with groups like:
+    <g class="Wall"> ... <polygon points="x1,y1 x2,y2 ..."/> </g>
+    <g class="Railing"> ... </g>
+    <g id="Door" class="..."> ... </g>
+    <g class="Window"> ... </g>
+  Or individual elements with class attributes directly.
 
-The txt files (train.txt, val.txt, test.txt) live in the GitHub repo clone,
-not in the Zenodo download. This script handles both cases.
+Class mapping:
+  Wall, Railing, Column → class 1
+  Door, Opening → class 2
+  Window → class 3
 """
 
 import os
 import sys
 import json
-import argparse
 import random
+import argparse
+import re
 from pathlib import Path
 
 import cv2
 import numpy as np
 
 SAVE_SIZE = 512
-MIN_SIZE  = 200
+MIN_SIZE  = 150
+
+# CubiCasa SVG class name → our mask class
+CLASS_MAP = {}
+for name in ['Wall', 'wall', 'Walls', 'walls', 'WallGroup',
+             'Railing', 'railing', 'Column', 'column', 'Structure']:
+    CLASS_MAP[name] = 1
+for name in ['Door', 'door', 'Doors', 'doors', 'Opening', 'opening',
+             'DoorGroup', 'SingleSwingDoor', 'DoubleSwingDoor']:
+    CLASS_MAP[name] = 2
+for name in ['Window', 'window', 'Windows', 'windows', 'WindowGroup',
+             'Skylight', 'skylight']:
+    CLASS_MAP[name] = 3
 
 
-def find_all_plan_folders(data_root: Path):
-    """
-    Walk data_root and find all folders that contain both an image and an SVG.
-    This is the most robust approach — doesn't rely on txt files or CSV.
-    """
-    folders = []
-    for root, dirs, files in os.walk(str(data_root)):
-        root_path = Path(root)
-        has_svg = any(f.endswith('.svg') for f in files)
-        has_img = any(f.endswith('.png') or f.endswith('.jpg') for f in files)
-        if has_svg and has_img:
-            folders.append(root_path)
-    return folders
+def parse_points(pts_str):
+    """Parse SVG points string into list of (x,y) floats."""
+    pts = []
+    for pair in re.split(r'[\s,]+', pts_str.strip()):
+        pair = pair.strip()
+        if not pair:
+            continue
+        # Handle "x,y" or separate x y tokens
+        if ',' in pair:
+            parts = pair.split(',')
+            if len(parts) == 2:
+                try:
+                    pts.append((float(parts[0]), float(parts[1])))
+                except ValueError:
+                    pass
+    return pts
 
 
-def load_splits_from_txt(repo_root: Path):
-    """Try to load folder lists from train/val/test txt files."""
-    splits = {}
-    for name in ("train", "val", "test"):
-        # txt files can be in repo root or in a data/ subdirectory
-        for candidate in [
-            repo_root / f"{name}.txt",
-            repo_root / "data" / f"{name}.txt",
-            repo_root / "splits" / f"{name}.txt",
-        ]:
-            if candidate.exists():
-                folders = []
-                for line in open(candidate):
-                    rel = line.strip().lstrip("/")
-                    if rel:
-                        folders.append(rel)
-                splits[name] = folders
-                break
-        else:
-            splits[name] = []
-    return splits
+def parse_points_alternating(pts_str):
+    """Parse SVG points as alternating x y x y values (no commas)."""
+    nums = []
+    for tok in re.split(r'\s+', pts_str.strip()):
+        try:
+            nums.append(float(tok))
+        except ValueError:
+            pass
+    pts = []
+    for i in range(0, len(nums) - 1, 2):
+        pts.append((nums[i], nums[i+1]))
+    return pts
 
 
-def load_splits_from_csv(repo_root: Path, data_root: Path):
-    """Load folder lists from cubicasa5k.csv."""
-    # CSV can be in repo root or data root
-    for candidate in [
-        repo_root / "cubicasa5k.csv",
-        data_root / "cubicasa5k.csv",
-        data_root.parent / "cubicasa5k.csv",
-    ]:
-        if candidate.exists():
-            import csv as _csv
-            with open(candidate) as f:
-                rows = list(_csv.DictReader(f))
-
-            print(f"  CSV found: {candidate}  columns={list(rows[0].keys()) if rows else 'empty'}", flush=True)
-
-            if not rows:
-                continue
-
-            # Figure out which column has the image path
-            path_col = None
-            for col in ("image", "path", "filename", "file", rows[0].keys().__iter__().__next__()):
-                if col in rows[0]:
-                    path_col = col
-                    break
-
-            if path_col is None:
-                print(f"  Cannot find path column in CSV", flush=True)
-                continue
-
-            # Extract folder from image path
-            # e.g. "high_quality/00000001/F1_original.png" → "high_quality/00000001"
-            def to_folder(row):
-                p = row[path_col].strip().lstrip("/")
-                parts = Path(p).parts
-                # Return everything except the filename
-                if len(parts) >= 2:
-                    return str(Path(*parts[:-1]))
-                return p
-
-            # Check if CSV has a split column
-            split_col = None
-            for col in ("split", "set", "subset", "partition"):
-                if col in rows[0]:
-                    split_col = col
-                    break
-
-            if split_col:
-                train = [to_folder(r) for r in rows if r[split_col].lower() in ("train", "training")]
-                val   = [to_folder(r) for r in rows if r[split_col].lower() in ("val", "valid", "validation")]
-                test  = [to_folder(r) for r in rows if r[split_col].lower() in ("test", "testing")]
-            else:
-                # No split column — make our own 80/10/10 split
-                random.shuffle(rows)
-                n     = len(rows)
-                all_f = [to_folder(r) for r in rows]
-                train = all_f[:int(n * 0.8)]
-                val   = all_f[int(n * 0.8):int(n * 0.9)]
-                test  = all_f[int(n * 0.9):]
-
-            return {"train": train, "val": val, "test": test}
-
+def get_cls_from_elem(elem, ns=''):
+    """Extract class name from an element, trying multiple attributes."""
+    for attr in ['class', f'{ns}class', 'id', 'type', 'label']:
+        val = elem.get(attr, '')
+        if val:
+            # class can be space-separated list — take first token
+            for token in val.strip().split():
+                if token in CLASS_MAP:
+                    return CLASS_MAP[token]
     return None
 
 
-def make_mask(folder: Path) -> tuple:
-    """
-    Load SVG via CubiCasa House class and produce 4-class mask.
-    Returns (mask, img) or (None, None).
-    """
-    svg_files = list(folder.glob("*.svg"))
-    if not svg_files:
-        return None, None
+def svg_to_mask(svg_path: Path, img_h: int, img_w: int) -> np.ndarray:
+    """Parse a CubiCasa SVG and rasterise into a 4-class mask."""
+    import xml.etree.ElementTree as ET
 
-    img_files = list(folder.glob("F1_original.png"))
-    if not img_files:
-        img_files = list(folder.glob("*.png")) + list(folder.glob("*.jpg"))
-    if not img_files:
-        return None, None
-
-    img = cv2.imread(str(img_files[0]))
-    if img is None or min(img.shape[:2]) < MIN_SIZE:
-        return None, None
-
-    ih, iw = img.shape[:2]
+    mask = np.zeros((img_h, img_w), dtype=np.uint8)
 
     try:
-        from floortrans.loaders.house import House
-        house = House(str(svg_files[0]), ih, iw)
+        tree = ET.parse(str(svg_path))
+        root = tree.getroot()
 
-        mask = np.zeros((ih, iw), dtype=np.uint8)
+        # Strip XML namespace from tag names
+        def strip_ns(tag):
+            return re.sub(r'\{[^}]+\}', '', tag)
 
-        # Walls
-        if hasattr(house, "walls") and house.walls is not None:
-            wm = np.array(house.walls)
-            if wm.ndim == 3:
-                wall_channels = [c for c in [1, 7] if c < wm.shape[2]]
-                if wall_channels:
-                    mask[wm[:, :, wall_channels].sum(axis=2) > 0] = 1
-            elif wm.ndim == 2:
-                mask[np.isin(wm, [2, 8])] = 1
+        # Get viewBox for coordinate scaling
+        svg_tag = root if strip_ns(root.tag) == 'svg' else None
+        if svg_tag is None:
+            for elem in root.iter():
+                if strip_ns(elem.tag) == 'svg':
+                    svg_tag = elem
+                    break
+        if svg_tag is None:
+            svg_tag = root
 
-        if 1 not in np.unique(mask):
-            return None, None
+        vb = svg_tag.get('viewBox', svg_tag.get('viewbox', ''))
+        if vb:
+            parts = vb.strip().split()
+            if len(parts) == 4:
+                try:
+                    vw, vh = float(parts[2]), float(parts[3])
+                    sx = img_w / vw if vw > 0 else 1.0
+                    sy = img_h / vh if vh > 0 else 1.0
+                except ValueError:
+                    sx = sy = 1.0
+            else:
+                sx = sy = 1.0
+        else:
+            sw = float(svg_tag.get('width',  img_w) or img_w)
+            sh = float(svg_tag.get('height', img_h) or img_h)
+            sx = img_w / sw if sw > 0 else 1.0
+            sy = img_h / sh if sh > 0 else 1.0
 
-        # Icons
-        if hasattr(house, "icons") and house.icons is not None:
-            ic = np.array(house.icons)
-            if ic.ndim == 3:
-                if ic.shape[2] > 2:
-                    mask[ic[:, :, 2] > 0] = 2   # door
-                if ic.shape[2] > 1:
-                    mask[ic[:, :, 1] > 0] = 3   # window
-            elif ic.ndim == 2:
-                mask[ic == 2] = 2
-                mask[ic == 1] = 3
+        def draw_points(pts, cls, thickness=None):
+            if len(pts) < 2:
+                return
+            arr = np.array([[int(x * sx), int(y * sy)] for x, y in pts], dtype=np.int32)
+            if len(pts) >= 3 and thickness is None:
+                cv2.fillPoly(mask, [arr], cls)
+            else:
+                t = thickness or max(3, int(3 * min(sx, sy)))
+                for i in range(len(arr) - 1):
+                    cv2.line(mask, tuple(arr[i]), tuple(arr[i+1]), cls, t)
 
-        return mask, img
+        # Walk every element in the SVG
+        for elem in root.iter():
+            tag = strip_ns(elem.tag)
+
+            # Get class from this element OR its parent group
+            cls = get_cls_from_elem(elem)
+            if cls is None:
+                # Try parent (ET doesn't have parent refs, so check group context below)
+                continue
+
+            if tag == 'polygon':
+                pts_str = elem.get('points', '')
+                pts = parse_points(pts_str)
+                if len(pts) < 3:
+                    pts = parse_points_alternating(pts_str)
+                draw_points(pts, cls)
+
+            elif tag == 'polyline':
+                pts_str = elem.get('points', '')
+                pts = parse_points(pts_str)
+                if len(pts) < 2:
+                    pts = parse_points_alternating(pts_str)
+                draw_points(pts, cls, thickness=max(3, int(3 * min(sx, sy))))
+
+            elif tag == 'rect':
+                try:
+                    rx = float(elem.get('x', 0)) * sx
+                    ry = float(elem.get('y', 0)) * sy
+                    rw = float(elem.get('width',  0)) * sx
+                    rh = float(elem.get('height', 0)) * sy
+                    if rw > 0 and rh > 0:
+                        pts = [(rx, ry), (rx+rw, ry), (rx+rw, ry+rh), (rx, ry+rh)]
+                        draw_points(pts, cls)
+                except (ValueError, TypeError):
+                    pass
+
+            elif tag == 'line':
+                try:
+                    x1 = float(elem.get('x1', 0)) * sx
+                    y1 = float(elem.get('y1', 0)) * sy
+                    x2 = float(elem.get('x2', 0)) * sx
+                    y2 = float(elem.get('y2', 0)) * sy
+                    sw_val = elem.get('stroke-width', '4')
+                    try:
+                        t = max(3, int(float(sw_val) * min(sx, sy)))
+                    except ValueError:
+                        t = 4
+                    cv2.line(mask,
+                             (int(x1), int(y1)),
+                             (int(x2), int(y2)),
+                             cls, t)
+                except (ValueError, TypeError):
+                    pass
+
+        # Second pass: handle group-level class inheritance
+        # Walk groups, propagate class to children
+        for group in root.iter():
+            if strip_ns(group.tag) != 'g':
+                continue
+            cls = get_cls_from_elem(group)
+            if cls is None:
+                continue
+            for child in group:
+                tag = strip_ns(child.tag)
+                if tag == 'polygon':
+                    pts_str = child.get('points', '')
+                    pts = parse_points(pts_str)
+                    if len(pts) < 3:
+                        pts = parse_points_alternating(pts_str)
+                    draw_points(pts, cls)
+                elif tag == 'polyline':
+                    pts_str = child.get('points', '')
+                    pts = parse_points(pts_str)
+                    draw_points(pts, cls, thickness=max(3, int(3*min(sx,sy))))
+                elif tag == 'rect':
+                    try:
+                        rx = float(child.get('x', 0)) * sx
+                        ry = float(child.get('y', 0)) * sy
+                        rw = float(child.get('width',  0)) * sx
+                        rh = float(child.get('height', 0)) * sy
+                        if rw > 0 and rh > 0:
+                            pts = [(rx,ry),(rx+rw,ry),(rx+rw,ry+rh),(rx,ry+rh)]
+                            draw_points(pts, cls)
+                    except (ValueError, TypeError):
+                        pass
 
     except Exception as e:
-        return None, None
+        pass  # return whatever mask we have
+
+    return mask
 
 
-def process_folders(folders, data_root, out_images, out_masks, split_name):
+def find_all_plan_folders(data_root: Path):
+    """Walk data_root and find all folders with both an image and SVG."""
+    folders = []
+    for root, dirs, files in os.walk(str(data_root)):
+        has_svg = any(f.endswith('.svg') for f in files)
+        has_img = any(f.endswith(('.png', '.jpg', '.jpeg')) for f in files)
+        if has_svg and has_img:
+            folders.append(Path(root))
+    return folders
+
+
+def process_folders(folders, out_images, out_masks, split_name):
     records = []
     skipped = 0
 
-    for i, folder_rel in enumerate(folders):
-        # folder_rel can be absolute or relative
-        folder = Path(folder_rel)
-        if not folder.is_absolute():
-            folder = data_root / folder_rel
-        if not folder.exists():
+    for i, folder in enumerate(folders):
+        folder = Path(folder)
+
+        # Find SVG
+        svgs = list(folder.glob('*.svg'))
+        if not svgs:
             skipped += 1
             continue
 
-        mask, img = make_mask(folder)
-        if mask is None:
+        # Find image (prefer F1_original.png)
+        imgs = list(folder.glob('F1_original.png'))
+        if not imgs:
+            imgs = list(folder.glob('*.png')) + list(folder.glob('*.jpg'))
+        if not imgs:
             skipped += 1
             continue
 
+        img = cv2.imread(str(imgs[0]))
+        if img is None or min(img.shape[:2]) < MIN_SIZE:
+            skipped += 1
+            continue
+
+        ih, iw = img.shape[:2]
+        mask = svg_to_mask(svgs[0], ih, iw)
+
+        if 1 not in np.unique(mask):
+            skipped += 1
+            continue
+
+        # Resize
         img_rs  = cv2.resize(img,  (SAVE_SIZE, SAVE_SIZE), interpolation=cv2.INTER_LANCZOS4)
         mask_rs = cv2.resize(mask, (SAVE_SIZE, SAVE_SIZE), interpolation=cv2.INTER_NEAREST)
         mask_rs = np.clip(mask_rs, 0, 3).astype(np.uint8)
 
-        uid       = str(folder_rel).replace("/", "_").replace("\\", "_")
-        img_path  = out_images / f"{uid}.png"
-        mask_path = out_masks  / f"{uid}_mask.png"
-        cv2.imwrite(str(img_path),  img_rs)
-        cv2.imwrite(str(mask_path), mask_rs)
+        uid = str(folder).replace('/', '_').replace('\\', '_').lstrip('_')[-60:]
+        img_p  = out_images / f"cubi_{i:05d}_{uid[:20]}.png"
+        mask_p = out_masks  / f"cubi_{i:05d}_{uid[:20]}_mask.png"
 
-        records.append({"image": str(img_path), "mask": str(mask_path), "source": "cubicasa"})
+        cv2.imwrite(str(img_p),  img_rs)
+        cv2.imwrite(str(mask_p), mask_rs)
+
+        records.append({"image": str(img_p), "mask": str(mask_p), "source": "cubicasa"})
 
         if (i + 1) % 200 == 0:
             print(f"  {split_name}: {i+1}/{len(folders)} done, {skipped} skipped", flush=True)
@@ -228,15 +302,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cubicasa-root",   required=True)
     parser.add_argument("--output-root",     required=True)
-    parser.add_argument("--floortrans-repo", required=True)
+    parser.add_argument("--floortrans-repo", default=None,
+                        help="Ignored — we no longer use the House loader")
     args = parser.parse_args()
 
-    data_root       = Path(args.cubicasa_root)
-    out_root        = Path(args.output_root)
-    floortrans_root = Path(args.floortrans_repo)
-
-    if str(floortrans_root) not in sys.path:
-        sys.path.insert(0, str(floortrans_root))
+    data_root = Path(args.cubicasa_root)
+    out_root  = Path(args.output_root)
 
     out_images = out_root / "images"
     out_masks  = out_root / "masks"
@@ -244,63 +315,70 @@ def main():
     for d in [out_images, out_masks, out_splits]:
         d.mkdir(parents=True, exist_ok=True)
 
-    # ── Load splits ───────────────────────────────────────────────────────────
-    print("Loading splits...", flush=True)
+    print(f"Scanning {data_root} for floor plan folders...", flush=True)
+    all_folders = find_all_plan_folders(data_root)
+    print(f"Found {len(all_folders)} folders", flush=True)
 
-    # Try txt files first
-    splits = load_splits_from_txt(floortrans_root)
-    if any(splits.values()):
-        print(f"  Loaded from txt: train={len(splits['train'])} val={len(splits['val'])} test={len(splits['test'])}", flush=True)
-    else:
-        # Try CSV
-        splits = load_splits_from_csv(floortrans_root, data_root)
-        if splits and any(splits.values()):
-            print(f"  Loaded from CSV: train={len(splits['train'])} val={len(splits['val'])} test={len(splits['test'])}", flush=True)
-        else:
-            # Last resort: walk the entire data directory
-            print("  No txt/CSV splits found — scanning directory for plan folders...", flush=True)
-            all_folders = find_all_plan_folders(data_root)
-            print(f"  Found {len(all_folders)} plan folders by scanning", flush=True)
-            random.shuffle(all_folders)
-            n = len(all_folders)
-            # Use absolute paths since we found them by walking
-            all_abs = [str(f) for f in all_folders]
-            splits = {
-                "train": all_abs[:int(n * 0.8)],
-                "val":   all_abs[int(n * 0.8):int(n * 0.9)],
-                "test":  all_abs[int(n * 0.9):],
-            }
-
-    if not any(splits.values()):
-        print("ERROR: Could not find any floor plan folders.", flush=True)
+    if not all_folders:
+        print("ERROR: no folders found. Check --cubicasa-root path.", flush=True)
         sys.exit(1)
 
-    # ── Process ───────────────────────────────────────────────────────────────
+    # Quick test on first folder to verify SVG parsing works
+    test_folder = all_folders[0]
+    test_svgs = list(test_folder.glob('*.svg'))
+    test_imgs = list(test_folder.glob('*.png'))
+    if test_svgs and test_imgs:
+        test_img = cv2.imread(str(test_imgs[0]))
+        if test_img is not None:
+            ih, iw = test_img.shape[:2]
+            test_mask = svg_to_mask(test_svgs[0], ih, iw)
+            unique = np.unique(test_mask).tolist()
+            print(f"SVG parse test on {test_folder.name}: mask unique values = {unique}", flush=True)
+            if 1 not in unique:
+                print("WARNING: no wall pixels in test sample — SVG class names may differ", flush=True)
+                # Print first few group class names from SVG to debug
+                import xml.etree.ElementTree as ET
+                tree = ET.parse(str(test_svgs[0]))
+                classes_found = set()
+                for elem in tree.getroot().iter():
+                    c = elem.get('class', '')
+                    if c:
+                        for tok in c.strip().split():
+                            classes_found.add(tok)
+                print(f"  Classes in SVG: {sorted(classes_found)[:30]}", flush=True)
+
+    # Split 80/10/10
+    random.shuffle(all_folders)
+    n = len(all_folders)
+    splits = {
+        "train": all_folders[:int(n * 0.8)],
+        "val":   all_folders[int(n * 0.8):int(n * 0.9)],
+        "test":  all_folders[int(n * 0.9):],
+    }
+
     all_records = {}
     for split_name, folders in splits.items():
-        if not folders:
-            all_records[split_name] = []
-            continue
         print(f"\nProcessing {split_name} ({len(folders)} folders)...", flush=True)
-        records = process_folders(folders, data_root, out_images, out_masks, split_name)
+        records = process_folders(folders, out_images, out_masks, split_name)
         all_records[split_name] = records
         with open(out_splits / f"{split_name}.json", "w") as f:
             json.dump(records, f, indent=2)
 
-    # ── Sanity check ──────────────────────────────────────────────────────────
-    train_records = all_records.get("train", [])
-    print(f"\nTotal: train={len(train_records)} val={len(all_records.get('val',[]))} test={len(all_records.get('test',[]))}", flush=True)
+    total_train = len(all_records.get("train", []))
+    print(f"\nTotal: train={total_train} val={len(all_records.get('val',[]))} test={len(all_records.get('test',[]))}", flush=True)
 
-    if not train_records:
-        print("ERROR: no records produced.", flush=True)
+    if total_train == 0:
+        print("ERROR: 0 training records. SVG class names not matching CLASS_MAP.", flush=True)
         sys.exit(1)
 
+    # Sanity check
+    samples = random.sample(all_records["train"], min(5, total_train))
     ok = 0
-    for s in random.sample(train_records, min(10, len(train_records))):
+    for s in samples:
         m = cv2.imread(s["mask"], cv2.IMREAD_GRAYSCALE)
-        if m is not None and set(np.unique(m).tolist()).issubset({0,1,2,3}) and 1 in np.unique(m):
+        if m is not None and 1 in np.unique(m):
             ok += 1
-    print(f"Sanity check: {ok}/{min(10, len(train_records))} passed {'✓' if ok > 0 else '— check House loader'}", flush=True)
+    print(f"Sanity check: {ok}/{len(samples)} samples have wall pixels {'✓' if ok > 0 else '— check CLASS_MAP'}", flush=True)
 
 
 if __name__ == "__main__":
