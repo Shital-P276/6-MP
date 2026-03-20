@@ -66,6 +66,16 @@ def main():
         )
     print(f"Using mask column: '{wall_key}'", flush=True)
 
+    # Detect image column name — dataset uses 'plans', not 'image'
+    IMAGE_KEYS = ["image", "plans", "floor_plan", "img", "floor_image", "rgb", "photo"]
+    image_key  = next((k for k in IMAGE_KEYS if k in first), None)
+    if image_key is None:
+        raise ValueError(
+            f"Could not find image column. Available columns: {list(first.keys())}\n"
+            f"Tried: {IMAGE_KEYS}"
+        )
+    print(f"Using image column: '{image_key}'", flush=True)
+
     records = []
     skipped = 0
 
@@ -73,7 +83,7 @@ def main():
         sample = ds[i]
 
         # ── Image ─────────────────────────────────────────────────────────────
-        img_pil = sample["image"]
+        img_pil = sample[image_key]
         if img_pil is None:
             skipped += 1
             continue

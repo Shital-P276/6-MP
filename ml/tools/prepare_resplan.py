@@ -1,81 +1,214 @@
 """
 prepare_resplan.py
-Downloads ResPlan (17,000 residential floor plans) from HuggingFace and
-converts to 4-class integer PNG masks.
+Downloads ResPlan from GitHub and converts to 4-class integer PNG masks.
 
-ResPlan (2025) — https://arxiv.org/abs/2508.14006
-HuggingFace dataset: search "ResPlan" on huggingface.co/datasets
-Annotations: walls, doors, windows, balconies in vector/graph format
+Source:  https://github.com/m-agour/ResPlan
+Dataset: 17,000 residential floor plans with wall/door/window/balcony annotations
+Format:  ResPlan.zip → ResPlan.pkl (pickle of list of dicts)
 
-NOTE: ResPlan distributes data in vector/graph format, not pre-rendered masks.
-This script handles two possible formats:
-  Format A: HF dataset with 'image' + 'walls'/'doors'/'windows' mask columns
-  Format B: HF dataset with 'image' + 'annotation' JSON column (vector polygons)
-
-If ResPlan is not available on HuggingFace yet, this script falls back to
-RPLAN (80k plans, room-level only — walls inferred from room boundaries)
-or skips gracefully.
+Each sample dict has keys:
+  'wall'     → list of polygon point lists  → class 1
+  'door'     → list of polygon point lists  → class 2
+  'window'   → list of polygon point lists  → class 3
+  'balcony'  → ignored (background)
+  room keys  → ignored (background)
 
 Usage:
     python prepare_resplan.py \
         --output-root /kaggle/working/data/processed/resplan \
-        --hf-token    YOUR_HF_TOKEN  # optional
+        --pkl-path    /path/to/ResPlan.pkl   # optional, downloads if not given
 """
 
 import os
+import sys
 import json
 import random
 import argparse
+import pickle
 from pathlib import Path
 
 import cv2
 import numpy as np
 
+SAVE_SIZE = 512
 
-def try_render_from_vector(annotation, h: int, w: int) -> np.ndarray:
-    """
-    Render a 4-class mask from a vector annotation dict.
-    Handles various annotation formats that ResPlan might use.
-    """
-    mask = np.zeros((h, w), dtype=np.uint8)
 
-    if not isinstance(annotation, dict):
-        return mask
+def draw_polygons(mask, polygons, cls, scale, off_x, off_y):
+    for poly in polygons:
+        if not poly or len(poly) < 3:
+            continue
+        try:
+            pts = np.array([
+                [int((p[0] - off_x) * scale),
+                 int((p[1] - off_y) * scale)]
+                for p in poly
+            ], dtype=np.int32)
+            cv2.fillPoly(mask, [pts], cls)
+        except Exception:
+            continue
 
-    # Try common key patterns
-    wall_polys   = annotation.get("walls",   annotation.get("wall",   []))
-    door_polys   = annotation.get("doors",   annotation.get("door",   []))
-    window_polys = annotation.get("windows", annotation.get("window", []))
 
-    def draw_polys(polys, cls):
-        for poly in polys:
-            if isinstance(poly, dict):
-                pts = poly.get("points", poly.get("polygon", poly.get("vertices", [])))
-            elif isinstance(poly, list):
-                pts = poly
-            else:
-                continue
-            if len(pts) >= 2:
-                arr = np.array(pts, dtype=np.float32)
-                if arr.shape[-1] == 2:
-                    arr[:, 0] *= w
-                    arr[:, 1] *= h
-                    cv2.fillPoly(mask, [arr.astype(np.int32)], cls)
+def sample_to_mask(sample):
+    """Convert a ResPlan sample dict to (rendered_image_bgr, mask_uint8)."""
+    if not isinstance(sample, dict):
+        return None, None
 
-    draw_polys(wall_polys,   1)
-    draw_polys(door_polys,   2)
-    draw_polys(window_polys, 3)
-    return mask
+    # Collect all points to compute bounding box
+    all_pts = []
+    for key, val in sample.items():
+        if not isinstance(val, list):
+            continue
+        for poly in val:
+            if isinstance(poly, list):
+                for pt in poly:
+                    if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                        try:
+                            all_pts.append((float(pt[0]), float(pt[1])))
+                        except (TypeError, ValueError):
+                            pass
+
+    if len(all_pts) < 4:
+        return None, None
+
+    xs = [p[0] for p in all_pts]
+    ys = [p[1] for p in all_pts]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    w = max_x - min_x
+    h = max_y - min_y
+
+    if w < 1 or h < 1:
+        return None, None
+
+    # Scale to SAVE_SIZE with 5% padding
+    pad   = 0.05
+    scale = SAVE_SIZE / max(w, h) * (1 - 2 * pad)
+    off_x = min_x - max(w, h) * pad
+    off_y = min_y - max(w, h) * pad
+
+    mask  = np.zeros((SAVE_SIZE, SAVE_SIZE), dtype=np.uint8)
+    image = np.ones( (SAVE_SIZE, SAVE_SIZE, 3), dtype=np.uint8) * 255  # white bg
+
+    # Draw room fills in light grey for image realism
+    room_keys = ['bedroom', 'bathroom', 'kitchen', 'living', 'corridor',
+                 'balcony', 'storage', 'dining', 'garage', 'hall', 'entry',
+                 'study', 'laundry', 'utility', 'toilet', 'wc']
+    for key in room_keys:
+        if key in sample and isinstance(sample[key], list):
+            for poly in sample[key]:
+                if isinstance(poly, list) and len(poly) >= 3:
+                    try:
+                        pts = np.array([
+                            [int((p[0] - off_x) * scale),
+                             int((p[1] - off_y) * scale)]
+                            for p in poly
+                        ], dtype=np.int32)
+                        cv2.fillPoly(image, [pts], (225, 225, 225))
+                    except Exception:
+                        pass
+
+    # Walls → class 1, draw dark on image
+    wall_keys = ['wall', 'walls', 'exterior_wall', 'interior_wall',
+                 'wall_depth', 'neighbor_wall']
+    for key in wall_keys:
+        if key in sample and isinstance(sample[key], list):
+            draw_polygons(mask, sample[key], 1, scale, off_x, off_y)
+            for poly in sample[key]:
+                if isinstance(poly, list) and len(poly) >= 2:
+                    try:
+                        pts = np.array([
+                            [int((p[0] - off_x) * scale),
+                             int((p[1] - off_y) * scale)]
+                            for p in poly
+                        ], dtype=np.int32)
+                        cv2.fillPoly(image, [pts], (60, 60, 60))
+                    except Exception:
+                        pass
+
+    # Doors → class 2
+    for key in ['door', 'doors']:
+        if key in sample and isinstance(sample[key], list):
+            draw_polygons(mask, sample[key], 2, scale, off_x, off_y)
+
+    # Windows → class 3
+    for key in ['window', 'windows']:
+        if key in sample and isinstance(sample[key], list):
+            draw_polygons(mask, sample[key], 3, scale, off_x, off_y)
+
+    if 1 not in np.unique(mask):
+        return None, None
+
+    return image, mask
+
+
+def get_pkl_path() -> str:
+    """Return path to ResPlan.pkl — checks Kaggle attached dataset first, then downloads from GitHub."""
+
+    # 1. Check if uploaded as Kaggle dataset (fastest — no download)
+    kaggle_candidates = [
+        "/kaggle/input/resplan/ResPlan.pkl",
+        "/kaggle/input/resplan-dataset/ResPlan.pkl",
+        "/kaggle/input/resplan/resplan/ResPlan.pkl",
+    ]
+    for p in kaggle_candidates:
+        if os.path.exists(p):
+            print(f"Found Kaggle-attached ResPlan at: {p}", flush=True)
+            return p
+
+    work_dir = "/kaggle/working/resplan_download"
+    pkl_path = f"{work_dir}/ResPlan.pkl"
+
+    if os.path.exists(pkl_path):
+        return pkl_path
+
+    os.makedirs(work_dir, exist_ok=True)
+    zip_path = f"{work_dir}/ResPlan.zip"
+
+    # 2. Try direct zip download from GitHub (most reliable)
+    print("Downloading ResPlan.zip from GitHub...", flush=True)
+    for url in [
+        "https://github.com/m-agour/ResPlan/raw/main/ResPlan.zip",
+        "https://raw.githubusercontent.com/m-agour/ResPlan/main/ResPlan.zip",
+        "https://github.com/m-agour/ResPlan/releases/latest/download/ResPlan.zip",
+    ]:
+        ret = os.system(f"wget -q --show-progress '{url}' -O {zip_path}")
+        if ret == 0 and os.path.exists(zip_path) and os.path.getsize(zip_path) > 100_000:
+            print(f"Downloaded successfully from: {url}", flush=True)
+            os.system(f"unzip -q {zip_path} -d {work_dir}")
+            pkls = list(Path(work_dir).rglob("*.pkl"))
+            if pkls:
+                return str(pkls[0])
+            break
+
+    # 3. Fallback: git clone
+    print("Trying git clone...", flush=True)
+    clone_dir = f"{work_dir}/repo"
+    ret = os.system(f"git clone --depth 1 https://github.com/m-agour/ResPlan.git {clone_dir}")
+    if ret == 0:
+        for candidate in [
+            f"{clone_dir}/ResPlan.pkl",
+            f"{clone_dir}/ResPlan.zip",
+            f"{clone_dir}/data/ResPlan.pkl",
+            f"{clone_dir}/dataset/ResPlan.pkl",
+        ]:
+            if os.path.exists(candidate):
+                if candidate.endswith('.pkl'):
+                    return candidate
+                if candidate.endswith('.zip'):
+                    os.system(f"unzip -q {candidate} -d {work_dir}")
+                    pkls = list(Path(work_dir).rglob("*.pkl"))
+                    if pkls:
+                        return str(pkls[0])
+
+    return None
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-root", required=True)
-    parser.add_argument("--hf-token",      default=None)
-    parser.add_argument("--hf-token-file", default=None, help="Read token from file instead of arg")
+    parser.add_argument("--pkl-path",    default=None,
+                        help="Path to ResPlan.pkl. If not given, downloads from GitHub.")
     parser.add_argument("--max-samples", type=int, default=17000)
-    parser.add_argument("--dataset-name", default=None,
-                        help="HuggingFace dataset name. Auto-detected if not provided.")
     args = parser.parse_args()
 
     out_root   = Path(args.output_root)
@@ -85,128 +218,60 @@ def main():
     for d in [out_images, out_masks, out_splits]:
         d.mkdir(parents=True, exist_ok=True)
 
-    # Read token from file if provided (avoids token in shell history)
-    if args.hf_token_file and os.path.exists(args.hf_token_file):
-        with open(args.hf_token_file) as tf:
-            args.hf_token = tf.read().strip()
+    # Resolve PKL path
+    pkl_path = args.pkl_path
+    if not pkl_path or not os.path.exists(pkl_path):
+        print("PKL path not provided or not found — downloading from GitHub...", flush=True)
+        pkl_path = get_pkl_path()
 
-    from datasets import load_dataset
-
-    # Try several possible dataset names in order
-    dataset_candidates = [
-        args.dataset_name,
-        "corentingregoire/ResPlan",
-        "ResidentialFloorPlan/ResPlan",
-        "ResPlan/floorplans",
-    ]
-    dataset_candidates = [d for d in dataset_candidates if d]
-
-    ds = None
-    used_name = None
-    for name in dataset_candidates:
-        try:
-            print(f"Trying dataset: {name} ...", flush=True)
-            ds = load_dataset(name, split="train", token=args.hf_token)
-            used_name = name
-            print(f"Loaded: {name}  ({len(ds)} samples)", flush=True)
-            break
-        except Exception as e:
-            print(f"  Not found: {e}", flush=True)
-
-    if ds is None:
-        print("\nResPlan not found on HuggingFace under any known name.", flush=True)
-        print("Skipping — training will proceed without ResPlan.", flush=True)
-        print("To add it later: find the correct HF dataset name and re-run this script.", flush=True)
-        # Write empty split files so merge_splits.py doesn't crash
+    if not pkl_path or not os.path.exists(pkl_path):
+        print("ERROR: Could not obtain ResPlan.pkl — writing empty splits.", flush=True)
         for name in ("train", "val", "test"):
             with open(out_splits / f"{name}.json", "w") as f:
                 json.dump([], f)
         return
 
-    # Print column names so we can see what's available
-    first = ds[0]
-    print(f"Columns: {list(first.keys())}", flush=True)
+    print(f"Loading PKL from: {pkl_path}", flush=True)
+    with open(pkl_path, "rb") as f:
+        raw = pickle.load(f)
 
-    total   = min(len(ds), args.max_samples)
+    # Normalise to list of dicts
+    if isinstance(raw, list):
+        samples = raw
+    elif isinstance(raw, dict):
+        samples = []
+        for v in raw.values():
+            if isinstance(v, list):
+                samples.extend(v)
+            elif isinstance(v, dict):
+                samples.append(v)
+    else:
+        print(f"Unexpected PKL type: {type(raw)}", flush=True)
+        for name in ("train", "val", "test"):
+            with open(out_splits / f"{name}.json", "w") as f:
+                json.dump([], f)
+        return
+
+    total = min(len(samples), args.max_samples)
+    print(f"Total samples in PKL: {len(samples)} — processing {total}", flush=True)
+
+    # Print keys of first sample so we can verify the format
+    if samples and isinstance(samples[0], dict):
+        print(f"Sample keys: {list(samples[0].keys())}", flush=True)
+
     records = []
     skipped = 0
 
     for i in range(total):
-        sample = ds[i]
-
-        # ── Image ─────────────────────────────────────────────────────────────
-        img_field = sample.get("image", sample.get("img", sample.get("floor_plan")))
-        if img_field is None:
+        image, mask = sample_to_mask(samples[i])
+        if image is None:
             skipped += 1
             continue
-        img = np.array(img_field.convert("RGB") if hasattr(img_field, "convert") else img_field)
-        img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        h, w = img.shape[:2]
-
-        # ── Mask ──────────────────────────────────────────────────────────────
-        mask = None
-
-        # Format A: separate mask columns
-        for wall_key in ("wall_mask", "walls_mask", "segmentation_mask", "mask"):
-            if wall_key in sample and sample[wall_key] is not None:
-                raw = sample[wall_key]
-                raw = np.array(raw.convert("L") if hasattr(raw, "convert") else raw)
-                raw = raw.squeeze().astype(np.uint8)
-                m = np.zeros(raw.shape[:2], dtype=np.uint8)
-                m[raw > 127] = 1
-                if 1 in np.unique(m):
-                    mask = m
-                    # Try to add doors/windows from separate columns
-                    for door_key in ("door_mask", "doors_mask"):
-                        if door_key in sample and sample[door_key] is not None:
-                            dm = np.array(sample[door_key])
-                            dm = np.squeeze(dm).astype(np.uint8)
-                            mask[dm > 127] = 2
-                    for win_key in ("window_mask", "windows_mask"):
-                        if win_key in sample and sample[win_key] is not None:
-                            wm = np.array(sample[win_key])
-                            wm = np.squeeze(wm).astype(np.uint8)
-                            mask[wm > 127] = 3
-                break
-
-        # Format B: combined segmentation mask with class values
-        if mask is None:
-            for seg_key in ("label", "labels", "annotation", "seg"):
-                if seg_key in sample and sample[seg_key] is not None:
-                    raw = sample[seg_key]
-                    raw = np.array(raw.convert("L") if hasattr(raw, "convert") else raw).squeeze()
-                    unique_vals = np.unique(raw).tolist()
-                    # If values are already 0-3, use directly
-                    if set(unique_vals).issubset({0, 1, 2, 3}):
-                        mask = raw.astype(np.uint8)
-                    break
-
-        # Format C: vector annotation JSON
-        if mask is None:
-            for ann_key in ("annotations", "vectors", "geometry"):
-                if ann_key in sample and sample[ann_key] is not None:
-                    ann = sample[ann_key]
-                    if isinstance(ann, str):
-                        try:
-                            ann = json.loads(ann)
-                        except Exception:
-                            continue
-                    mask = try_render_from_vector(ann, h, w)
-                    break
-
-        if mask is None or 1 not in np.unique(mask):
-            skipped += 1
-            continue
-
-        # Resize
-        img_rs  = cv2.resize(img_bgr, (512, 512), interpolation=cv2.INTER_LANCZOS4)
-        mask_rs = cv2.resize(mask,    (512, 512), interpolation=cv2.INTER_NEAREST)
-        mask_rs = np.clip(mask_rs, 0, 3).astype(np.uint8)
 
         img_path  = out_images / f"resplan_{i:05d}.png"
         mask_path = out_masks  / f"resplan_{i:05d}_mask.png"
-        cv2.imwrite(str(img_path),  img_rs)
-        cv2.imwrite(str(mask_path), mask_rs)
+        cv2.imwrite(str(img_path),  image)
+        cv2.imwrite(str(mask_path), mask)
 
         records.append({
             "image":  str(img_path),
@@ -217,10 +282,14 @@ def main():
         if (i + 1) % 500 == 0:
             print(f"  {i+1}/{total} processed, {skipped} skipped", flush=True)
 
-    print(f"\nDone — {len(records)} valid, {skipped} skipped", flush=True)
+    print(f"Done — {len(records)} valid, {skipped} skipped", flush=True)
 
     if not records:
-        print("No records produced. Writing empty splits.", flush=True)
+        print("No records produced. Printing first sample for debug:", flush=True)
+        if samples and isinstance(samples[0], dict):
+            print(f"  Keys: {list(samples[0].keys())}", flush=True)
+            for k, v in list(samples[0].items())[:5]:
+                print(f"  {k}: {str(v)[:100]}", flush=True)
         for name in ("train", "val", "test"):
             with open(out_splits / f"{name}.json", "w") as f:
                 json.dump([], f)
@@ -235,10 +304,9 @@ def main():
         "test":  records[int(n * 0.9):],
     }
     for name, recs in splits.items():
-        out_path = out_splits / f"{name}.json"
-        with open(out_path, "w") as f:
+        with open(out_splits / f"{name}.json", "w") as f:
             json.dump(recs, f, indent=2)
-        print(f"  {name}: {len(recs)} → {out_path}", flush=True)
+        print(f"  {name}: {len(recs)}", flush=True)
 
 
 if __name__ == "__main__":
