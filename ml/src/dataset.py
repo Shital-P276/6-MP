@@ -24,8 +24,9 @@ MAX_RETRIES   = 10   # how many neighbours to try before raising
 
 def get_train_transforms() -> A.Compose:
     return A.Compose([
+        # FIX: albumentations 1.4+ requires size=(H, W) instead of height=, width=
         A.RandomResizedCrop(
-            height=IMAGE_SIZE, width=IMAGE_SIZE,
+            size=(IMAGE_SIZE, IMAGE_SIZE),
             scale=(0.7, 1.0), ratio=(0.75, 1.33),
         ),
         A.HorizontalFlip(p=0.5),
@@ -42,7 +43,8 @@ def get_train_transforms() -> A.Compose:
 
 def get_val_transforms() -> A.Compose:
     return A.Compose([
-        A.Resize(height=IMAGE_SIZE, width=IMAGE_SIZE, interpolation=cv2.INTER_LANCZOS4),
+        # FIX: albumentations 1.4+ — positional (H, W) works; height=/width= removed
+        A.Resize(IMAGE_SIZE, IMAGE_SIZE, interpolation=cv2.INTER_LANCZOS4),
         A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
         ToTensorV2(),
     ])
