@@ -1,0 +1,114 @@
+END-TO-END WORKFLOW (TECHNICAL + LAYMAN)
+
+WORKFLOW OVERVIEW
+- Goal: convert a raw floor plan into a reliable, reviewable 3D model.
+- Outcome: stakeholders can inspect layout intent quickly and consistently.
+
+PHASE 1: INPUT INGESTION
+Technical Steps:
+1) Accept file (PNG/JPG/PDF).
+2) Normalize into raster-accessible representation.
+3) Capture basic dimensions/metadata.
+
+Layman Explanation:
+- The system receives a plan file and prepares it so all later steps can read it consistently.
+
+PHASE 2: SCALE + PREPROCESSING
+Technical Steps:
+1) Attempt PPM detection from green tick spacing.
+2) Apply dynamic border crop.
+3) Suppress green annotation pixels.
+4) Prepare wall/room segmentation masks.
+
+Layman Explanation:
+- Before understanding walls, the tool estimates real size and removes drawing decorations that are not part of the building.
+
+PHASE 3: WALL DETECTION
+Technical Steps:
+1) Apply wall gray-range filters.
+2) Run line/segment extraction.
+3) Merge near-collinear fragments.
+4) Deduplicate thick double-edge traces into centerlines.
+5) Remove tiny noise segments.
+
+Layman Explanation:
+- The software identifies wall lines, stitches broken pieces, and removes false detections.
+
+PHASE 4: JUNCTION HANDLING
+Technical Steps:
+1) Identify wall-to-wall reach interactions.
+2) Split walls at valid junction points.
+3) Preserve wall attributes in subsegments.
+
+Layman Explanation:
+- Where walls meet, the model reorganizes wall pieces so connections are represented correctly.
+
+PHASE 5: OPENING DETECTION + REPROJECTION
+Technical Steps:
+1) Detect doors/windows.
+2) Attach openings to walls with normalized along-wall position.
+3) Reproject wall references after wall splitting.
+
+Layman Explanation:
+- It finds doors/windows and ensures they are attached to the right wall position even after wall cleanup.
+
+PHASE 6: ROOM DETECTION
+Technical Steps:
+1) Analyze room-region pixel bands.
+2) Extract enclosed space representations.
+3) Prepare room metadata for rendering/analytics.
+
+Layman Explanation:
+- It determines room areas so the final model can show usable spaces clearly.
+
+PHASE 7: 3D MODEL BUILD
+Technical Steps:
+1) Convert 2D geometry to world-space structures.
+2) Apply coordinate transforms for Three.js conventions.
+3) Build model JSON schema for renderer.
+
+Layman Explanation:
+- The 2D map is translated into a 3D data package that a browser can display.
+
+PHASE 8: RENDERING + INTERACTION
+Technical Steps:
+1) Load model into Three.js scene.
+2) Apply materials/textures (procedural where needed).
+3) Support mode switching (blueprint/realistic).
+4) Enable picking/highlight interactions.
+
+Layman Explanation:
+- Users can view and interact with the generated 3D layout in a web interface.
+
+PHASE 9: REVIEW + ITERATION LOOP
+Technical Steps:
+1) Validate geometry quality.
+2) Flag confidence/exception cases.
+3) Tune thresholds/logic if needed.
+4) Re-run pipeline.
+
+Layman Explanation:
+- Teams review output quality and refine settings to improve reliability over time.
+
+OPERATIONAL WORKFLOW FOR DELIVERY TEAMS
+1) Intake checklist
+- Verify file readability and resolution.
+- Check for scale markers.
+
+2) Processing checklist
+- Capture run metadata and chosen PPM mode (detected/fallback).
+- Record warnings or anomaly flags.
+
+3) QA checklist
+- Check wall continuity.
+- Check door/window plausibility.
+- Check room enclosure sanity.
+
+4) Handoff checklist
+- Provide model output + processing notes + known caveats.
+- Share stakeholder-friendly summary with screenshots.
+
+Suggested governance cadence
+- Weekly: quality metrics review.
+- Biweekly: threshold tuning review.
+- Monthly: roadmap and risk reassessment.

@@ -1,0 +1,108 @@
+PRODUCT FEATURES AND USE CASES
+
+A) Feature inventory
+
+1. Multi-format input handling
+Technical:
+- Accepts PNG/JPG/PDF plans and routes through parsing components.
+Layman:
+- It works with common floor plan file types, so teams do not need heavy preprocessing.
+
+2. Automated scale interpretation
+Technical:
+- Detects repeated green tick marks to infer real-world scale (pixels-per-meter).
+- Uses fallback defaults when markers are absent.
+Layman:
+- The software reads plan markings to understand size correctly.
+- If markings are missing, it still works using a backup assumption.
+
+3. Wall detection and normalization
+Technical:
+- Gray-range filtering + Hough/merge stages identify wall candidates.
+- Deduplication and coordinate grouping collapse double edges to centerlines.
+Layman:
+- It finds likely walls even when drawings have thick or duplicate lines.
+
+4. Door/window opening modeling
+Technical:
+- Openings tied to wall indices and parametric position (t_center).
+- Reprojection adjusts opening placement after wall segmentation changes.
+Layman:
+- Doors/windows stay aligned to the correct wall, even after model cleanup.
+
+5. Room extraction
+Technical:
+- Distinguishes room fill from wall pixels using threshold bands.
+Layman:
+- It identifies enclosed spaces to make the model easier to interpret.
+
+6. 3D generation and browser visualization
+Technical:
+- Emits structured building model JSON consumed by Three.js.
+- Supports blueprint/realistic visualization mode switching.
+Layman:
+- You can open a web view and inspect a generated 3D floor layout.
+
+7. Offline-safe procedural textures
+Technical:
+- Textures are generated at runtime with canvas, avoiding external dependencies.
+Layman:
+- The model appearance works even without downloading material files.
+
+B) Primary use cases
+
+Use Case 1: Pre-construction design review
+- Input: architect-provided plan image.
+- Output: shareable 3D walkthrough-like visualization.
+- Value: quicker stakeholder alignment before execution.
+
+Use Case 2: Client communication
+- Input: technical drawing not easily understood by non-technical clients.
+- Output: intuitive model for discussion.
+- Value: fewer misunderstandings and revisions.
+
+Use Case 3: Internal QA and clash pre-checks (early stage)
+- Input: revised floor plan revisions.
+- Output: comparable spatial outputs across versions.
+- Value: detect obvious anomalies before costly downstream tasks.
+
+Use Case 4: Portfolio-scale rapid visualization
+- Input: batch of floor plans from multiple projects.
+- Output: standardized 3D previews.
+- Value: scalable early-stage analysis and reporting.
+
+C) User personas and expectations
+
+1. Executive sponsor
+Needs: confidence, ROI visibility, risk posture.
+What to show: speed gains, quality trends, scalability path.
+
+2. Project manager
+Needs: process predictability, timeline impact, handoff clarity.
+What to show: workflow checkpoints, exception paths, SLA metrics.
+
+3. Engineer/analyst
+Needs: architecture detail, tuning knobs, known limitations.
+What to show: detector thresholds, geometric assumptions, test coverage.
+
+4. Client/end-user
+Needs: understandable output.
+What to show: before/after examples, intuitive navigation, practical benefits.
+
+D) Non-goals (important for expectation management)
+- Not a complete BIM authoring replacement.
+- Not guaranteed perfect semantic classification for every plan style.
+- Not a substitute for final engineering sign-off drawings.
+
+E) Feature roadmap suggestions
+Near-term:
+- Automated confidence scoring per detected entity.
+- Visual QA overlays for detected vs inferred geometry.
+
+Mid-term:
+- Batch processing dashboard.
+- Semi-automatic correction UI.
+
+Long-term:
+- Multi-floor linkage and stair/vertical circulation semantics.
+- Direct integrations with enterprise documentation systems.

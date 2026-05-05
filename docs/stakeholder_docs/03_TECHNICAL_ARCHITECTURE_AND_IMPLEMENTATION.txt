@@ -1,0 +1,94 @@
+TECHNICAL ARCHITECTURE AND IMPLEMENTATION DETAILS
+
+1) System architecture summary
+Pipeline:
+- Input files (PNG/JPG/PDF)
+- Raster parser
+- Wall detection
+- Opening detection
+- Room detection
+- Geometry/model builder
+- Three.js viewer
+
+Design pattern:
+- Modular staged pipeline where each stage emits structured intermediate data.
+- This enables isolated debugging and controlled improvement without full rewrites.
+
+2) Key modules and responsibilities
+- raster_parser.py:
+  - Converts input imagery into processable geometry data.
+  - Handles preprocessing assumptions for downstream detectors.
+
+- pipeline.py:
+  - Orchestration layer.
+  - Coordinates sequencing and data handoffs between detectors/builders.
+
+- wall_detector.py:
+  - Detects linear wall candidates from raster representations.
+  - Applies filtering, merge, and dedup logic.
+
+- opening_detector.py:
+  - Detects and parameterizes doors/windows relative to wall geometry.
+
+- room_detector.py:
+  - Identifies interior room regions.
+
+- geometry_builder.py:
+  - Produces render-ready structured 3D model schema.
+
+- viewer/index_v2.html:
+  - Visual rendering and interaction layer using Three.js.
+
+3) Important implementation behaviors
+A) Scale detection (PPM)
+- Uses green top-border tick-gap analysis where available.
+- Falls back to default when reliable markers are missing.
+- Why this matters: many thresholds scale with PPM; wrong scale propagates geometry errors.
+
+B) Border crop and green suppression
+- Adaptive crop prevents annotation frames from polluting wall detection.
+- Green-mask suppression removes non-structural annotation pixels.
+- Why this matters: cleaner binary/gray segmentation improves precision.
+
+C) Wall splitting at junctions
+- Walls split where other wall bodies intersect with geometric reach conditions.
+- Must occur before opening grouping to preserve structural consistency.
+
+D) Opening reprojection after split
+- Updates opening wall index and normalized center position on new sub-walls.
+- Prevents shift artifacts caused by wall length change.
+
+E) Coordinate transformations
+- Converts between image coordinates (y-down), world coordinates (y-up), and Three.js space (z mapping).
+- Consistent transform handling is critical for door swing and placement correctness.
+
+4) Quality and reliability model
+Detection reliability drivers:
+- Input quality (resolution, contrast, annotation noise).
+- Accurate PPM inference.
+- Threshold suitability for the specific plan style.
+
+Error handling strategy:
+- Use fallback scale assumptions.
+- Enforce caps/guards on crop and geometric operations.
+- Preserve modular checkpoints for diagnosis.
+
+5) Technical limitations
+- Threshold-based methods may need tuning for unseen style families.
+- Very noisy/scanned plans may degrade room/opening fidelity.
+- Semantic richness remains lighter than full BIM workflows.
+
+6) Implementation recommendations for maturity
+- Add benchmark dataset with known ground truth.
+- Track per-stage confidence and failure reasons.
+- Add regression test suite from previously failing plans.
+- Introduce structured telemetry for production observability.
+
+7) Layman translation of architecture
+- Think of the system like an assembly line:
+  1) Read the plan
+  2) Detect key building parts
+  3) Reconcile and clean those detections
+  4) Build a 3D representation
+  5) Show it in a browser
+- Each station can be improved independently without rebuilding the whole factory.

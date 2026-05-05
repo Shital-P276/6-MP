@@ -1,0 +1,75 @@
+EXECUTIVE SUMMARY AND VALUE PROPOSITION
+
+1) Problem we solve
+Technical View:
+- Converting 2D floor plans (PNG/JPG/PDF) into usable 3D spatial models is typically manual, error-prone, and slow.
+- Traditional CAD-to-3D workflows require specialist software and skilled operators.
+- Stakeholders often need quick visualization for approvals, communication, and design review loops.
+
+Layman View:
+- Teams receive flat floor plan images, but people need a realistic 3D view to understand the space.
+- Doing this by hand takes time and can introduce mistakes.
+- The project automates most of this work so teams can review spaces faster and make decisions sooner.
+
+2) What this project does
+Technical View:
+- The system parses raster/PDF floor plans, detects walls/openings/rooms, and builds a structured 3D building model JSON for rendering in a Three.js viewer.
+- It supports automatic scale extraction via green border measurement markers and includes fallback mechanisms for robustness.
+
+Layman View:
+- Upload a floor plan image.
+- The software finds walls, doors, windows, and rooms.
+- It then builds a 3D model you can inspect in a browser.
+
+3) Core business value
+- Faster review cycles: reduces time from drawing to interactive model.
+- Better communication: technical and non-technical teams align on one visual representation.
+- Lower dependency on manual modelers for early-stage visualization.
+- Improved quality checks: easier identification of layout inconsistencies before downstream execution.
+
+4) Stakeholder outcomes
+For leadership:
+- Better visibility into project progress and quality.
+- Faster go/no-go decisions.
+
+For project managers:
+- Reduced back-and-forth among design, operations, and client teams.
+- Better scope and change management conversations.
+
+For engineers/designers:
+- Repeatable pipeline with known assumptions and failure modes.
+- Easier debugging due to modular architecture.
+
+For end customers/users:
+- Improved confidence through realistic previews.
+- Faster approvals.
+
+5) Key differentiators
+Technical Differentiators:
+- Dynamic pixels-per-meter (PPM) detection based on measurement tick marks.
+- Adaptive border crop and green-mask suppression for noisy annotated plans.
+- Wall splitting at junction logic with robust geometric constraints.
+- Opening reprojection after wall splits to preserve placement fidelity.
+- Procedural texture generation for offline-safe rendering.
+
+Layman Differentiators:
+- The tool can “understand” differently formatted plans better than fixed-rule scripts.
+- It is designed to keep doors/windows in the right place even when walls are reprocessed.
+- It works without depending on external texture/image downloads.
+
+6) Success metrics (recommended)
+Product/Business:
+- Average time from upload to viewable 3D model.
+- Number of layouts processed per week/month.
+- Stakeholder approval cycle time reduction.
+
+Technical:
+- Wall detection precision/recall.
+- Door/window placement accuracy.
+- Percentage of files requiring manual correction.
+- Crash-free processing rate.
+
+7) Decision-ready summary
+- This project is a practical automation layer between raw floor plans and 3D understanding.
+- It is suitable for organizations that need high-volume, quick-turn visualization with transparent technical behavior.
+- Further investment should focus on accuracy benchmarking, QA tooling, and enterprise integration pathways.

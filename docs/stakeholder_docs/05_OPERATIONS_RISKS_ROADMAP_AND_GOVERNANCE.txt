@@ -1,0 +1,89 @@
+OPERATIONS, RISKS, ROADMAP, AND GOVERNANCE
+
+1) Operating model
+Recommended roles:
+- Product owner: prioritizes use cases and value outcomes.
+- Tech lead: owns architecture and algorithm quality.
+- QA lead: manages validation datasets and acceptance standards.
+- Delivery lead: controls stakeholder handoffs and reporting cadence.
+
+Run model:
+- Intake -> Process -> QA -> Deliver -> Feedback -> Improve.
+- Maintain a processing log for every plan to support auditability.
+
+2) Risk register (initial)
+Risk A: Scale detection failure
+- Impact: geometric distortion and downstream inaccuracies.
+- Mitigation: robust fallback rules + explicit confidence tagging.
+
+Risk B: Style variance across floor plans
+- Impact: inconsistent detection quality.
+- Mitigation: per-style presets + adaptive threshold research.
+
+Risk C: Annotation-heavy inputs
+- Impact: false positives in structural detection.
+- Mitigation: stronger annotation suppression and preprocessing diagnostics.
+
+Risk D: Stakeholder over-trust in automation
+- Impact: decisions made without validating uncertain outputs.
+- Mitigation: communicate confidence levels and QA checkpoints clearly.
+
+3) Quality governance
+Key controls:
+- Gold-standard validation set with expected outputs.
+- Regression tests for known historical failure examples.
+- Versioned threshold/config changes.
+- Release criteria based on measurable performance.
+
+Recommended KPIs:
+- Automation success rate (no manual intervention).
+- Median processing time per file.
+- Detection accuracy by component (walls/openings/rooms).
+- Rework rate after stakeholder review.
+
+4) Documentation governance
+- Keep this documentation pack versioned with code changes.
+- Update both technical and layman sections whenever pipeline logic changes.
+- Add “what changed and why” note per release.
+
+5) Roadmap (pragmatic)
+Quarter 1 priorities:
+- Build baseline benchmark suite.
+- Add confidence scoring in outputs.
+- Add structured QA report generation.
+
+Quarter 2 priorities:
+- Batch processing + monitoring dashboard.
+- Semi-automated correction tools.
+- Improved room semantics and labeling.
+
+Quarter 3+ priorities:
+- Multi-floor support.
+- Integration connectors for enterprise document systems.
+- Advanced analytics (space utilization, scenario comparison).
+
+6) Stakeholder communication templates
+A) Monthly executive update
+- Volume processed
+- Accuracy trends
+- Cycle-time trends
+- Top risks and mitigation status
+- Next-month priorities
+
+B) Project status update
+- Completed enhancements
+- Current issues and blockers
+- Decisions needed
+- Impact on timeline
+
+C) Technical release note
+- Algorithmic changes
+- Expected behavior shifts
+- Backward compatibility notes
+- Validation evidence summary
+
+7) Layman summary of governance
+- Treat the solution as a smart assistant, not an infallible judge.
+- Always track quality numbers.
+- Improve in small controlled steps.
+- Keep communication transparent so leadership can trust progress.
