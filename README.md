@@ -1,209 +1,158 @@
-# Floor Plan 3D Visualizer
+# FloorViz (Floor Plan 3D Visualizer)
 
-Upload a floor plan image (PNG/JPG/PDF) or DXF file and get an interactive 3D model with textured walls, doors, and windows.
+🌍 **Live Demo:** https://floorviz.netlify.app  
+⚙️ **API Endpoint:** https://floorviz.up.railway.app
 
-**Stack:** FastAPI (Python 3.10+) + Three.js (browser, no build step)
-**Repo:** `https://github.com/Shital-P276/6-MP/tree/v2.2`
+## Abstract / Overview
+FloorViz converts 2D floor plans into interactive 3D browser models. Users upload DXF or raster plans (PNG/JPG/BMP/TIFF/PDF), the FastAPI backend extracts walls/rooms/openings, and the frontend renders the generated 3D geometry with camera controls, visualization modes, materials, and a room-based virtual tour. The project is intended for rapid architectural visualization, QA of plan geometry, and lightweight spatial walkthroughs without a desktop CAD toolchain.
 
----
+## Features
+- Multi-format floor plan ingestion (`.dxf`, `.png`, `.jpg/.jpeg`, `.bmp`, `.tif/.tiff`, `.pdf`)
+- API pipeline for upload → process → retrieve model
+- Computer-vision raster parsing (wall, room, door, window extraction)
+- DXF parsing + wall pairing + opening/room inference
+- 3D web rendering with Three.js (no frontend build step)
+- Interactive controls (views, wireframe/solid/floor toggles, labels)
+- Realistic/blueprint style modes + procedural material system
+- Virtual tour mode with room hotspots, HUD navigation, autoplay, minimap
+- Debug image endpoint for raster Hough/line-detection verification
+- Persistent backend storage via Railway Volume (`/data/uploads`, `/data/models`)
 
-## Quick Start
+## Screenshots / Demo
+- Live product: https://floorviz.netlify.app
+- Repository assets include sample images in `sample_data/img/` and `backend/debug.png` for parsing/debug output.
 
-### 1. Start the backend
+## Tech Stack
 
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+| Layer | Technology | Notes |
+|---|---|---|
+| Frontend | HTML/CSS/JavaScript, Three.js (CDN) | Single-file viewer app (`viewer/index_v12.html`) |
+| Backend | FastAPI, Uvicorn | REST API + processing orchestration |
+| Geometry/CAD | `ezdxf`, `shapely` | DXF parsing, geometry logic |
+| CV/Imaging | `opencv-python-headless`, `numpy`, `Pillow`, `pdf2image` | Raster/PDF parsing and feature extraction |
+| File Upload | `python-multipart` | Multipart form upload handling |
+| Storage | Filesystem + Railway Volumes | Persistent data for uploads/models in production |
+| Deployment | Netlify (frontend), Railway (backend) | Decoupled static UI + compute API |
+
+## Architecture Summary
+- **Frontend/backend communication:** The viewer calls backend endpoints directly over HTTP (`/health`, `/upload`, `/process/{job_id}`, etc.).
+- **Processing flow:** Uploaded file is saved with a generated `job_id`, then processed by `ProcessingPipeline`, which dispatches DXF vs raster/PDF parsing, runs wall/room/opening detection, and builds a Three.js-friendly JSON model.
+- **Request lifecycle:** Browser performs upload (multipart), then triggers processing with optional scale/geometry parameters, then renders returned model JSON.
+- **Storage:** Backend writes uploaded source files and generated model JSON files to mounted storage paths.
+
+## Repository Structure
+
+```text
+FloorViz/
+├── backend/
+│   ├── app/
+│   │   ├── main.py                 # FastAPI app and endpoints
+│   │   └── core/                   # Parsing + detection + geometry pipeline
+│   ├── tests/                      # Unit/integration tests for pipeline components
+│   └── models/                     # Generated model JSON artifacts (local/dev)
+├── viewer/                         # Static frontend viewer variants (v12 is latest)
+├── sample_data/                    # Sample DXF plans and generation scripts
+├── dependencies/                   # Local poppler bundle/instructions
+└── requirements.txt                # Python dependencies
 ```
 
-You should see: `Uvicorn running on http://127.0.0.1:8000`
+## Installation
 
-### 2. Serve the viewer
-
-> ⚠️ **Do NOT open `index_v2.html` directly as a file.** Browsers block `fetch()` to localhost from `file://` URLs. You must serve it via HTTP.
-
+### Backend
 ```bash
-# From the viewer/ folder:
+cd backend
+pip install -r ../requirements.txt
+```
+
+### Frontend
+No package manager/build is required. Serve `viewer/` via any static HTTP server.
+
+## Running Locally
+
+1. **Start API**
+```bash
+cd backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+2. **Serve frontend**
+```bash
+cd viewer
 python -m http.server 3000
 ```
 
-Then open: **`http://localhost:3000/index_v2.html`**
+3. Open:
+- Viewer: `http://localhost:3000/index_v12.html`
+- API docs: `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/health`
 
-The green dot in the top-right header should show **API CONNECTED**.
+> Note: `index_v12.html` currently defaults to `const API = 'http://localhost:8000'`. Update this constant for non-local environments.
 
-### 3. Upload a floor plan
+## Environment Variables
+The backend itself does not define custom `.env` variables in code, but relies on standard runtime variables and filesystem conventions:
 
-Drop a PNG/JPG/PDF floor plan into the upload zone (or click to browse). Supported DXF files also work. Hit **PROCESS FLOOR PLAN**.
+| Variable | Required | Purpose |
+|---|---|---|
+| `PORT` | Production (Railway) | Bound by Uvicorn startup command (`${PORT:-8000}`) |
 
----
+Operational paths are hardcoded in backend startup:
+- `/data/uploads` for source uploads
+- `/data/models` for output JSON models
 
-## Project Structure
+In Railway, mount a persistent volume at `/data`.
 
+## Deployment
+
+### Railway (Backend)
+- Root directory: typically `backend/` (so `requirements.txt` is discoverable)
+- Start command:
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
 ```
-project/
-├── backend/
-│   └── app/
-│       ├── main.py                  ← FastAPI routes
-│       └── core/
-│           ├── pipeline.py          ← Orchestrates all steps
-│           ├── raster_parser.py     ← Image → wall/door/window detection
-│           ├── wall_detector.py     ← Segments → Wall objects
-│           ├── opening_detector.py  ← DXF door/window detection
-│           ├── room_detector.py     ← Room polygon detection
-│           └── geometry_builder.py  ← Walls → Three.js JSON
-└── viewer/
-    └── index_v2.html                ← Self-contained Three.js viewer
-```
+- CORS is open (`allow_origins=["*"]`) for static frontend access.
+- Use `opencv-python-headless` (already in `requirements.txt`) to avoid GUI-linked OpenCV failures in headless Linux containers.
+- Configure Railway Volume mounted to `/data` for persistence.
 
----
+### Netlify (Frontend)
+- Static deployment (no build command)
+- Publish directory should include `viewer/index_v12.html`
+- Update frontend API constant to Railway URL for production
 
-## Viewer Controls
+### Docker
+No Dockerfile is present in this repository at the time of writing.
 
-| Action | Control |
-|--------|---------|
-| Orbit | Left drag |
-| Zoom | Scroll wheel |
-| Pan | Right drag |
-| Views | Keys `1` `2` `3` `4` or PERSP / TOP / FRONT / SIDE buttons |
-| Toggle solid | `S` or SOLID button |
-| Toggle wireframe | `W` or WIRE button |
-| Toggle floor | `F` or FLOOR button |
-| Toggle doors/windows | DOORS / WIN buttons |
-| Process | `Space` |
-| Toggle virtual tour | `T` or **⬡ START TOUR** button in sidebar |
+## API Overview
 
----
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Service health + supported formats |
+| `POST` | `/upload` | Upload floor plan and receive `job_id` |
+| `POST` | `/process/{job_id}` | Run processing pipeline with tuning query params |
+| `POST` | `/process/{job_id}/debug-image` | Generate line-overlay debug PNG (raster/PDF only) |
+| `GET` | `/model/{job_id}` | Retrieve processing result or status |
+| `GET` | `/jobs` | List in-memory jobs and statuses |
+| `DELETE` | `/job/{job_id}` | Delete job + related stored files |
 
-## Virtual Tour
+## Limitations
+- Job state is kept in process memory; restart clears active job index.
+- `allow_origins=["*"]` is permissive for production.
+- Frontend API URL is hardcoded in `index_v12.html`.
+- Processing is synchronous per request (no queue/worker separation).
+- Large set of generated model artifacts in-repo suggests cleanup/retention policy is needed.
 
-After processing a floor plan, the **⬡ START TOUR** button activates a first-person walkthrough of every detected room.
+## Future Improvements
+- Move to persistent job metadata store (DB/Redis)
+- Configurable environment-driven API base URL in frontend
+- Add auth/rate limiting and tighter CORS
+- Add async/background processing queue and progress tracking
+- Add Dockerfile + CI/CD workflows + formal release process
+- Expand automated tests for raster/PDF pipelines and endpoint contracts
 
-### How it works
+## Contributing
+1. Fork and create a feature branch.
+2. Keep changes focused and include tests where practical.
+3. Validate backend endpoints and viewer behavior locally.
+4. Submit PR with architecture/behavior notes and screenshots if UI changed.
 
-- **Hotspots** — a pulsing purple dot appears on the floor at each room's centroid. Hovering shows the room name; clicking flies the camera there.
-- **Camera fly** — smooth cubic ease-in-out animation from the current viewpoint to eye height (1.6 m) inside the target room. On landing the orbit controls stay active so you can look around freely.
-- **HUD nav bar** — appears at the bottom of the viewport:
-  - `←` / `→` arrows step through rooms in order
-  - Room name, index (`ROOM 2 OF 4`), and area
-  - Progress pips — one dot per room, clickable, active one glows
-  - `▶` / `⏸` autoplay button — automatically advances every 4 seconds
-- **Minimap** — bottom-right panel showing all rooms as numbered dots. The current room is highlighted and a line from it shows the camera's look direction.
-- **Crosshair** — subtle centre-screen indicator active during tour mode.
-
-### Tour controls
-
-| Action | Control |
-|--------|---------|
-| Start / exit tour | `T` or sidebar button |
-| Fly to room | Click a floor hotspot |
-| Previous / next room | `←` / `→` HUD arrows or pip dots |
-| Toggle autoplay | `▶` / `⏸` button in HUD |
-
-### Notes
-
-- Tour button is disabled until a model with detected rooms is loaded.
-- Exiting the tour restores the previous orbit camera position.
-- Works with any floor plan regardless of room count.
-
-## Modes
-
-### ◈ Blueprint Mode (default)
-Dark navy walls, cyan wireframes, dark grid background. The classic technical drawing look.
-
-### ◉ Realistic Mode
-Neutral white lighting, procedural textures on walls and floor. Toggle using the right panel.
-An amber **REALISTIC** badge appears on the canvas when active.
-
----
-
-## Material System (right panel)
-
-Open/close the right panel with the `◀ ▶` button on its left edge.
-
-**Wall Finish — 6 built-in textures:**
-| Texture | Description |
-|---------|-------------|
-| PLASTER | Warm grey matte with surface variation |
-| BRICK | Red/orange coursed brick with mortar lines |
-| CONCRETE | Dark grey with form-board lines and aggregate |
-| WOOD | Vertical timber panels with grain |
-| MARBLE | Light stone with veining |
-| W.TILE | White ceramic grid tiles |
-
-**Floor Finish — 6 built-in textures:**
-Tile · Parquet · Marble · Concrete · Stone · Carpet
-
-**Scope:**
-- `ALL WALLS` — applies chosen finish to every wall at once
-- `SELECT` — click walls in the viewport to select them (orange outline), then apply to selected only
-
-**Custom colour:** Colour picker for any solid wall colour.
-
-**Tile size:** Controls how large each texture tile is (0.3m–4m).
-
-All textures are procedurally generated — no external image files needed.
-
----
-
-## API Reference
-
-Base URL: `http://localhost:8000`
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check — returns `{"status": "ok"}` |
-| `/upload` | POST | Upload floor plan file, returns `job_id` |
-| `/process/{job_id}` | GET | Process uploaded file, returns 3D model JSON |
-
-**Process query params:**
-```
-scale=1.0              # unit scale (0 = auto-detect)
-wall_height=3.0        # wall height in metres
-wall_thickness=0.2     # fallback wall thickness
-pixels_per_meter=0     # MUST be 0 — triggers auto-detection from image
-```
-
----
-
-## Known Limitations
-
-| Issue | Severity | Status |
-|-------|----------|--------|
-| Window symbols only detected on vertical walls | Low | Open |
-| Thin wall door detection (SCAN_HALF too wide) | Medium | Open |
-| Phantom doors from tick marks near edges | Medium | Open |
-| Wall thickness measurement accuracy | High | Open |
-| Corner gap edges between perpendicular walls | High | Partial |
-| VR headset integration (WebXR) | Future | Planned |
-
----
-
-## Documentation Files
-
-| File | Purpose |
-|------|---------|
-| `CHANGELOG.md` | Full history of every change by session |
-| `LEARNMAP.md` | Hard-won lessons — what works, what broke, and why |
-| `PROJECTMAP.md` | Full map of every file, function, data flow, and open problems |
-
----
-
-## Troubleshooting
-
-**API OFFLINE / not connecting**
-1. Make sure uvicorn is running: `cd backend && uvicorn app.main:app --reload --port 8000`
-2. Make sure you opened the viewer via HTTP (`http://localhost:3000`), not as `file://`
-3. Open browser console and run: `fetch('http://localhost:8000/health').then(r=>r.json()).then(console.log).catch(console.error)`
-
-**Walls look wrong / missing**
-- Check the log panel in the viewer for PPM detection output
-- Try uploading the raw floor plan PNG, not a screenshot of the 3D viewer
-
-**Textures look too bright**
-- Switch to Blueprint mode and back to Realistic to re-apply defaults
-- Use the RESET ALL button and reapply your preferred texture
-
-**Floor plan processes but shows no model**
-- Check browser console for JS errors
-- Verify the backend logs in the terminal for Python tracebacks
+## License
+A license file was not found in this repository snapshot. Add a `LICENSE` file to define usage terms.
