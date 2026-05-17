@@ -5,7 +5,7 @@ shapely
 python-multipart
 
 # Image & PDF support
-opencv-python
+opencv-python-headless
 Pillow
 pdf2image
 numpy
