@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FloorViz VR — Vive Pro 2 Diagnostic</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #080c10;
+    color: #c8d8e8;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+  h1 { color: #00e5ff; font-size: 18px; letter-spacing: .12em; margin-bottom: 4px; }
+  .sub { color: #3a5060; font-size: 11px; letter-spacing: .1em; margin-bottom: 32px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; }
+  @media(max-width:640px){ .grid { grid-template-columns:1fr; } }
+
+  .card {
+    background: #0d1318;
+    border: 1px solid #1a2530;
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .card h2 { font-size: 11px; color: #3a8090; letter-spacing: .12em; margin-bottom: 16px; text-transform: uppercase; }
+
+  .check { display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; }
+  .icon { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-top:1px; }
+  .ok   { background: rgba(72,199,142,.15); color: #48c78e; border:1px solid #48c78e; }
+  .warn { background: rgba(255,183,77,.1);  color: #ffb74d; border:1px solid #ffb74d; }
+  .fail { background: rgba(252,129,129,.1); color: #fc8181; border:1px solid #fc8181; }
+  .spin { background: rgba(0,229,255,.06);  color: #00e5ff; border:1px solid #00e5ff; animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+  .check-label { font-size: 12px; color: #a0b8c8; line-height:1.5; }
+  .check-detail { font-size: 10px; color: #3a5060; margin-top: 2px; }
+
+  .step { display:flex; gap:14px; margin-bottom:18px; }
+  .step-num {
+    width:26px; height:26px; border-radius:50%;
+    background: rgba(0,229,255,.08); border:1px solid #00e5ff;
+    color:#00e5ff; display:flex; align-items:center; justify-content:center;
+    font-size:11px; flex-shrink:0;
+  }
+  .step-body h3 { font-size:12px; color:#a0f0ff; margin-bottom:4px; }
+  .step-body p  { font-size:11px; color:#3a6070; line-height:1.7; }
+  code {
+    background:#0a1520; border:1px solid #1a2530;
+    border-radius:3px; padding:2px 6px; font-size:10px; color:#80e8ff;
+  }
+
+  #vr-test-btn {
+    display: block; width: 100%; padding: 14px;
+    background: rgba(0,229,255,.06);
+    border: 1px solid #00e5ff; border-radius: 6px;
+    color: #00e5ff; font-family: inherit; font-size: 13px;
+    letter-spacing: .1em; cursor: pointer; margin-top: 16px;
+    transition: all .2s;
+  }
+  #vr-test-btn:hover { background: rgba(0,229,255,.14); box-shadow: 0 0 14px rgba(0,229,255,.2); }
+  #vr-test-btn:disabled { opacity:.3; cursor:not-allowed; }
+
+  #test-log {
+    background: #060a0d; border: 1px solid #1a2530;
+    border-radius:6px; padding:14px;
+    font-size:10px; line-height:2;
+    color:#3a6070; max-height:180px;
+    overflow-y:auto; margin-top:12px;
+    white-space:pre-wrap;
+  }
+  .log-ok   { color: #48c78e; }
+  .log-warn { color: #ffb74d; }
+  .log-fail { color: #fc8181; }
+  .log-info { color: #00e5ff; }
+
+  .divider { grid-column:1/-1; border:none; border-top:1px solid #1a2530; margin:4px 0; }
+  .note { grid-column:1/-1; background:rgba(255,183,77,.05); border:1px solid rgba(255,183,77,.2); border-radius:6px; padding:16px; font-size:11px; color:#e0c070; line-height:1.8; }
+  .note strong { color:#ffb74d; }
+
+  a { color:#00e5ff; }
+</style>
+</head>
+<body>
+<h1>◎ FLOORVIZ VR — VIVE PRO 2 DIAGNOSTIC</h1>
+<p class="sub">RUN THIS PAGE BEFORE OPENING INDEX_V10.HTML · CHECKS STEAMVR + OPENXR + WEBXR STACK</p>
+
+<div class="grid">
+
+  <!-- System checks -->
+  <div class="card">
+    <h2>Live System Checks</h2>
+    <div id="checks">
+      <div class="check">
+        <div class="icon spin" id="i-webxr">…</div>
+        <div><div class="check-label">WebXR API</div><div class="check-detail" id="d-webxr">Checking…</div></div>
+      </div>
+      <div class="check">
+        <div class="icon spin" id="i-immvr">…</div>
+        <div><div class="check-label">immersive-vr session supported</div><div class="check-detail" id="d-immvr">Checking…</div></div>
+      </div>
+      <div class="check">
+        <div class="icon spin" id="i-https">…</div>
+        <div><div class="check-label">Secure context (HTTPS / localhost)</div><div class="check-detail" id="d-https">Checking…</div></div>
+      </div>
+      <div class="check">
+        <div class="icon spin" id="i-webgl">…</div>
+        <div><div class="check-label">WebGL 2 + xrCompatible</div><div class="check-detail" id="d-webgl">Checking…</div></div>
+      </div>
+      <div class="check">
+        <div class="icon spin" id="i-browser">…</div>
+        <div><div class="check-label">Browser (Edge recommended for Vive)</div><div class="check-detail" id="d-browser">Checking…</div></div>
+      </div>
+    </div>
+
+    <button id="vr-test-btn" disabled>◎ LAUNCH TEST VR SESSION</button>
+    <div id="test-log">Waiting for checks to complete…</div>
+  </div>
+
+  <!-- Setup guide -->
+  <div class="card">
+    <h2>Vive Pro 2 Setup — One-Time Steps</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Install SteamVR + VIVE Console</h3>
+        <p>Both must be installed and updated. Launch SteamVR and confirm the headset shows a solid green icon in the SteamVR status window.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Set SteamVR as OpenXR Runtime</h3>
+        <p>In SteamVR: click the ☰ menu → <strong>Settings → OpenXR</strong> → click <strong>"SET STEAMVR AS OPENXR RUNTIME"</strong>. This is the most common reason WebXR fails on Vive.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Use Microsoft Edge (strongly recommended)</h3>
+        <p>Chrome has sandboxing issues with SteamVR/OpenXR. Edge works reliably. If you must use Chrome, launch it with the flag:<br>
+        <code>--disable-features=XRSandbox</code><br>
+        Right-click Chrome shortcut → Properties → add to Target field.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Serve on localhost or HTTPS</h3>
+        <p>WebXR is blocked on plain HTTP. Run your backend on port 8000 and frontend on port 8080 as described in previous sessions. <code>localhost</code> counts as secure.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>Run this check page first</h3>
+        <p>All 5 checks above should be ✓ green before opening FloorViz. Click "LAUNCH TEST VR SESSION" to confirm the headset can actually start an XR session.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Controller map -->
+  <div class="card">
+    <h2>Vive Wand Controls (inside FloorViz VR)</h2>
+    <div class="step">
+      <div class="step-num">→</div>
+      <div class="step-body"><h3>Right trigger / touchpad click</h3><p>Fly to next room</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">←</div>
+      <div class="step-body"><h3>Left trigger / touchpad click</h3><p>Fly to previous room</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">↕</div>
+      <div class="step-body"><h3>Head movement</h3><p>Looks around — 6DOF tracked by the base stations</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">☰</div>
+      <div class="step-body"><h3>Menu button (either controller)</h3><p>Returns to desktop — same as pressing ESC</p></div>
+    </div>
+  </div>
+
+  <!-- Troubleshoot -->
+  <div class="card">
+    <h2>Troubleshooting</h2>
+    <div class="step">
+      <div class="step-num">!</div>
+      <div class="step-body">
+        <h3>"VR not supported" on Chrome</h3>
+        <p>Switch to Edge, or add <code>--disable-features=XRSandbox</code> to Chrome's shortcut. Chrome has a known sandbox conflict with SteamVR OpenXR.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">!</div>
+      <div class="step-body">
+        <h3>Chrome shows its own VR splash (not FloorViz)</h3>
+        <p>Known bug with Chrome 142+. Switch to Edge. SteamVR must be set as OpenXR runtime — not Windows Mixed Reality or another runtime.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">!</div>
+      <div class="step-body">
+        <h3>ENTER VR button stays disabled</h3>
+        <p>Process a floor plan image first using the Upload button. Rooms must be detected before VR can start. The button auto-enables within 1 second of rooms appearing.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">!</div>
+      <div class="step-body">
+        <h3>Backend offline error</h3>
+        <p>Run in <strong>two</strong> terminals:<br>
+        Terminal 1 (backend): <code>cd backend &amp;&amp; python -m uvicorn app.main:app --reload --port 8000</code><br>
+        Terminal 2 (frontend): <code>cd viewer &amp;&amp; python -m http.server 8080</code><br>
+        Then open <code>http://localhost:8080/index_v10.html</code>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>⚠ Important — hand tracking disabled:</strong> The VIVE Console update from January 2025 intentionally blocked WebXR hand tracking to fix a crash bug. Do not request <code>hand-tracking</code> as an optional feature — FloorViz VR v10 already omits it for this reason. Wand controllers work normally.
+  </div>
+
+</div>
+
+<script>
+function setCheck(id, status, detail) {
+  const icon = document.getElementById('i-' + id);
+  const det  = document.getElementById('d-' + id);
+  icon.className = 'icon ' + status;
+  icon.textContent = status === 'ok' ? '✓' : status === 'warn' ? '!' : status === 'fail' ? '✗' : '…';
+  det.textContent = detail;
+}
+
+function addLog(msg, cls) {
+  const log = document.getElementById('test-log');
+  const span = document.createElement('span');
+  span.className = 'log-' + (cls||'info');
+  span.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n';
+  log.appendChild(span);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function runChecks() {
+  const log = document.getElementById('test-log');
+  log.innerHTML = '';
+
+  // 1. Secure context
+  const secure = window.isSecureContext;
+  setCheck('https', secure ? 'ok' : 'fail',
+    secure ? window.location.protocol + '//' + window.location.host : 'Not secure — WebXR blocked on plain HTTP. Use localhost or HTTPS.');
+  addLog('Secure context: ' + (secure ? 'YES' : 'NO'), secure ? 'ok' : 'fail');
+
+  // 2. WebGL2 + xrCompatible
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl2', { xrCompatible: true });
+    if (gl) {
+      setCheck('webgl', 'ok', 'WebGL 2 available with xrCompatible flag');
+      addLog('WebGL2 xrCompatible: OK', 'ok');
+    } else {
+      setCheck('webgl', 'fail', 'WebGL 2 not available — check GPU drivers');
+      addLog('WebGL2: NOT available', 'fail');
+    }
+  } catch(e) {
+    setCheck('webgl', 'fail', 'WebGL 2 error: ' + e.message);
+    addLog('WebGL2 error: ' + e.message, 'fail');
+  }
+
+  // 3. Browser detection
+  const ua = navigator.userAgent;
+  const isEdge   = ua.includes('Edg/');
+  const isChrome = ua.includes('Chrome/') && !isEdge;
+  const isFF     = ua.includes('Firefox/');
+  let browserName = isEdge ? 'Microsoft Edge (recommended ✓)' : isChrome ? 'Google Chrome (may need --disable-features=XRSandbox)' : isFF ? 'Firefox' : 'Unknown browser';
+  setCheck('browser', isEdge ? 'ok' : isChrome ? 'warn' : 'warn', browserName);
+  addLog('Browser: ' + browserName, isEdge ? 'ok' : 'warn');
+
+  // 4. WebXR API
+  if (!navigator.xr) {
+    setCheck('webxr', 'fail', 'navigator.xr not found — WebXR API absent. Use Edge or enable WebXR in browser flags.');
+    setCheck('immvr', 'fail', 'Cannot check — WebXR API missing');
+    addLog('WebXR API: NOT FOUND', 'fail');
+    addLog('ENTER VR will not work. Switch to Edge or install Immersive Web Emulator.', 'fail');
+    return;
+  }
+  setCheck('webxr', 'ok', 'navigator.xr found — WebXR API present');
+  addLog('WebXR API: present', 'ok');
+
+  // 5. immersive-vr support
+  try {
+    addLog('Checking immersive-vr session support…', 'info');
+    const ok = await navigator.xr.isSessionSupported('immersive-vr');
+    if (ok) {
+      setCheck('immvr', 'ok', 'SteamVR + OpenXR runtime detected and ready');
+      addLog('immersive-vr: SUPPORTED — SteamVR/OpenXR runtime is active', 'ok');
+      document.getElementById('vr-test-btn').disabled = false;
+    } else {
+      setCheck('immvr', 'warn', 'Not supported yet. Is SteamVR running? Is it set as OpenXR runtime?');
+      addLog('immersive-vr: NOT SUPPORTED', 'warn');
+      addLog('→ Start SteamVR', 'warn');
+      addLog('→ SteamVR ☰ → Settings → OpenXR → SET STEAMVR AS OPENXR RUNTIME', 'warn');
+      addLog('→ Turn on your Vive Pro 2 and wait for green status', 'warn');
+    }
+  } catch(e) {
+    setCheck('immvr', 'fail', 'Error: ' + e.message);
+    addLog('immersive-vr check error: ' + e.message, 'fail');
+  }
+}
+
+document.getElementById('vr-test-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('vr-test-btn');
+  btn.disabled = true;
+  btn.textContent = '⟳ STARTING SESSION…';
+  addLog('Requesting immersive-vr session…', 'info');
+
+  // Test canvas + renderer (minimal Three.js-style test)
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl2', { xrCompatible: true });
+    await gl.makeXRCompatible();
+    addLog('makeXRCompatible: OK', 'ok');
+  } catch(e) {
+    addLog('makeXRCompatible failed: ' + e.message + ' (may still work)', 'warn');
+  }
+
+  try {
+    const session = await navigator.xr.requestSession('immersive-vr', {
+      requiredFeatures: ['local-floor'],
+      optionalFeatures: ['bounded-floor'],
+    });
+    addLog('✓ XR session started! Reference space: local-floor', 'ok');
+    addLog('✓ Your Vive Pro 2 + SteamVR stack is fully working', 'ok');
+    addLog('You should now see the VR session active in your headset.', 'ok');
+    addLog('Ending test session in 3 seconds…', 'info');
+    btn.textContent = '✓ SESSION OK — ending in 3s…';
+    setTimeout(() => session.end(), 3000);
+    session.addEventListener('end', () => {
+      addLog('Test session ended cleanly.', 'ok');
+      addLog('→ You are ready to use FloorViz VR on index_v10.html', 'ok');
+      btn.textContent = '✓ VIVE PRO 2 READY — open index_v10.html';
+    });
+  } catch(e) {
+    addLog('Session request FAILED: ' + e.name + ': ' + e.message, 'fail');
+    if (e.name === 'NotSupportedError') {
+      addLog('→ SteamVR not running or not set as OpenXR runtime', 'fail');
+    } else if (e.name === 'SecurityError') {
+      addLog('→ Not a secure context (need HTTPS or localhost)', 'fail');
+    } else if (e.name === 'InvalidStateError') {
+      addLog('→ Another session may be active, or renderer not XR-compatible', 'fail');
+    }
+    btn.disabled = false;
+    btn.textContent = '◎ RETRY TEST SESSION';
+  }
+});
+
+// Run on load
+window.addEventListener('load', runChecks);
+// Re-check every 5s (catches SteamVR being launched after page loads)
+setInterval(runChecks, 5000);
+</script>
+</body>
+</html>
