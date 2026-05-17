@@ -118,8 +118,7 @@ uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
 - Publish directory should include `viewer/index_v12.html`
 - Update frontend API constant to Railway URL for production
 
-### Docker
-No Dockerfile is present in this repository at the time of writing.
+
 
 ## API Overview
 
@@ -155,4 +154,4 @@ No Dockerfile is present in this repository at the time of writing.
 4. Submit PR with architecture/behavior notes and screenshots if UI changed.
 
 ## License
-A license file was not found in this repository snapshot. Add a `LICENSE` file to define usage terms.
+FloorBiz was originally developed as a college project. Third-party dependencies (like Poppler and Three.js) retain their respective licenses.
