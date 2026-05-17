@@ -33,8 +33,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = Path("uploads")
-MODELS_DIR = Path("models")
+UPLOAD_DIR = Path("/data/uploads")
+MODELS_DIR = Path("/data/models")
 UPLOAD_DIR.mkdir(exist_ok=True)
 MODELS_DIR.mkdir(exist_ok=True)
 
