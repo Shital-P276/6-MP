@@ -1,7 +1,7 @@
 # FloorViz (Floor Plan 3D Visualizer)
 
 🌍 **Live Demo:** https://floorviz.netlify.app  
-⚙️ **API Endpoint:** https://floorviz.up.railway.app
+⚙️ **API Endpoint:** https://floorviz.up.railway.app/docs
 
 ## Abstract / Overview
 FloorViz converts 2D floor plans into interactive 3D browser models. Users upload DXF or raster plans (PNG/JPG/BMP/TIFF/PDF), the FastAPI backend extracts walls/rooms/openings, and the frontend renders the generated 3D geometry with camera controls, visualization modes, materials, and a room-based virtual tour. The project is intended for rapid architectural visualization, QA of plan geometry, and lightweight spatial walkthroughs without a desktop CAD toolchain.
