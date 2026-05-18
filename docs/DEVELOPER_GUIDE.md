@@ -2,7 +2,7 @@
 
 ## System Overview
 FloorViz is a two-part system:
-1. **Static frontend viewer** (`viewer/index_v12.html`) that handles upload UX, invokes API endpoints, and renders interactive 3D scenes using Three.js.
+1. **Static frontend viewer** (`viewer/index.html`) that handles upload UX, invokes API endpoints, and renders interactive 3D scenes using Three.js.
 2. **FastAPI backend** (`backend/app/main.py`) that accepts uploads, orchestrates a parsing/detection pipeline, and emits a normalized JSON model used by the viewer.
 
 The backend supports both **vector** (DXF) and **raster/PDF** input paths. A unified `ProcessingPipeline` dispatches to the correct parser, then applies wall detection, room detection, opening detection, and geometry building to produce consistent output.
