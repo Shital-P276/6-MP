@@ -3,10 +3,8 @@ uvicorn[standard]==0.29.0
 ezdxf
 shapely
 python-multipart
-
 # Image & PDF support
-opencv-python-headless
-Pillow
-pdf2image
-numpy
-
+opencv-python-headless==4.9.0.80
+Pillow==10.3.0
+pdf2image==1.17.0
+numpy==1.26.4
